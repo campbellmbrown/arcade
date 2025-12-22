@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 
-namespace Arcade.Core.Utility;
+namespace Arcade.Utility;
 
 public static class Conversion
 {

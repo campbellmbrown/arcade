@@ -1,4 +1,3 @@
-using System;
 using Arcade.Core;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -127,7 +126,7 @@ public class SpriteBatchService : ISpriteBatchService
         {
             _renderer.SpriteBatch.End();
             _graphicsDevice.SetRenderTarget(_lightRenderTarget);
-            _graphicsDevice.Clear(Color.Pink);
+            _graphicsDevice.Clear(Color.Black);
             _renderer.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.Additive, SamplerState.PointClamp, transformMatrix: MainLayerView.Camera.GetViewMatrix());
 
             while (_renderer.HasLights)

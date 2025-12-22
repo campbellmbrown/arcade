@@ -1,6 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Arcade.Visual;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
@@ -82,6 +81,43 @@ public class FontProvider(ContentManager content) : IFontProvider
     public BitmapFont Default => _fonts.First().Value;
 }
 
+public interface IContentCreator
+{
+    ITextDisplay TextDisplay(string text, Color color, Enum fontId, float scale = 1f);
+    ITextDisplay TextDisplay(string text, Enum fontId, float scale = 1f);
+    ITextDisplay TextDisplay(string text, Color color, float scale = 1f);
+    ITextDisplay TextDisplay(string text, float scale = 1f);
+}
+
+public class ContentCreator(IFontProvider fontProvider) : IContentCreator
+{
+    public ITextDisplay TextDisplay(string text, Color color, Enum fontId, float scale = 1f)
+    {
+        var font = fontProvider.GetFont(fontId);
+        return CreateTextDisplay(text, font, color, scale);
+    }
+
+    public ITextDisplay TextDisplay(string text, Enum fontId, float scale = 1f)
+    {
+        return TextDisplay(text, Color.White, fontId, scale);
+    }
+
+    public ITextDisplay TextDisplay(string text, Color color, float scale = 1f)
+    {
+        return CreateTextDisplay(text, fontProvider.Default, color, scale);
+    }
+
+    public ITextDisplay TextDisplay(string text, float scale = 1f)
+    {
+        return TextDisplay(text, Color.White, scale);
+    }
+
+    ITextDisplay CreateTextDisplay(string text, BitmapFont font, Color color, float scale)
+    {
+        return new TextDisplay(text, font, color, scale);
+    }
+}
+
 public interface IContentService
 {
     /// <summary>
@@ -92,11 +128,21 @@ public interface IContentService
     /// <summary>
     /// Provides access to fonts.
     /// </summary>
-    IFontProvider FontProvider { get; }
+    IFontProvider Font { get; }
+
+    /// <summary>
+    /// Creates visual elements.
+    /// </summary>
+    IContentCreator Creator { get; }
 }
 
-public class ContentService(ContentManager content) : IContentService
+public class ContentService(
+    IContentCreator contentCreator,
+    IFontProvider fontProvider,
+    ITextureProvider texture
+) : IContentService
 {
-    public ITextureProvider Texture { get; } = new TextureProvider(content);
-    public IFontProvider FontProvider { get; } = new FontProvider(content);
+    public IContentCreator Creator { get; } = contentCreator;
+    public IFontProvider Font { get; } = fontProvider;
+    public ITextureProvider Texture { get; } = texture;
 }

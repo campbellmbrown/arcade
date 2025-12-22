@@ -1,7 +1,7 @@
+using Arcade.Core;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
-using Arcade.Core;
 
 namespace Arcade.Visual;
 

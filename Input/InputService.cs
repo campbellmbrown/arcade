@@ -1,11 +1,9 @@
-using System;
-using System.Collections.Generic;
 using Arcade.Core;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 
-namespace RpgMap.Core.Input;
+namespace Arcade.Input;
 
 public interface IClickDraggable
 {
