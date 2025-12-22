@@ -82,10 +82,14 @@ public class LayerView : ILayerView
         var offsetFromCenter = MousePosition - Center;
         var afterZoomOffset = (zoomFactor - 1) * offsetFromCenter / 2;
 
+        var prevZoom = Camera.Zoom;
         Camera.ZoomIn(Camera.Zoom * (zoomFactor - 1));
-        Zoom = Camera.Zoom;
 
-        Camera.LookAt(Center + afterZoomOffset);
+        if (Camera.Zoom != prevZoom)
+        {
+            Zoom = Camera.Zoom;
+            Camera.LookAt(Center + afterZoomOffset);
+        }
     }
 
     public void WindowResized()

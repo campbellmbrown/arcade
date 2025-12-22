@@ -136,13 +136,16 @@ public interface IContentService
     IContentCreator Creator { get; }
 }
 
-public class ContentService(
-    IContentCreator contentCreator,
-    IFontProvider fontProvider,
-    ITextureProvider texture
-) : IContentService
+public class ContentService : IContentService
 {
-    public IContentCreator Creator { get; } = contentCreator;
-    public IFontProvider Font { get; } = fontProvider;
-    public ITextureProvider Texture { get; } = texture;
+    public IContentCreator Creator { get; }
+    public IFontProvider Font { get; }
+    public ITextureProvider Texture { get; }
+
+    public ContentService(ContentManager content)
+    {
+        Font = new FontProvider(content);
+        Texture = new TextureProvider(content);
+        Creator = new ContentCreator(Font);
+    }
 }
