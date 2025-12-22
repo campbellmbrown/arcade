@@ -1,4 +1,6 @@
-﻿namespace Arcade.Tests;
+﻿using NUnit.Framework;
+
+namespace Arcade.Tests;
 
 public class Tests
 {
