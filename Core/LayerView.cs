@@ -24,6 +24,8 @@ public interface ILayerView
 
     Vector2 MousePosition { get; }
 
+    bool ScrollToZoom { get; set; }
+
     float Zoom { get; }
 
     void Focus(Vector2 focusPoint);
@@ -71,6 +73,7 @@ public class LayerView : ILayerView
         }
     }
 
+    public bool ScrollToZoom { get; set; } = false;
     public float Zoom { get; private set; }
 
     public void Focus(Vector2 focusPoint) => Camera.LookAt(focusPoint);
@@ -79,6 +82,11 @@ public class LayerView : ILayerView
 
     public void ZoomAtMouse(float zoomFactor)
     {
+        if (!ScrollToZoom)
+        {
+            return;
+        }
+
         var offsetFromCenter = MousePosition - Center;
         var afterZoomOffset = (zoomFactor - 1) * offsetFromCenter / 2;
 

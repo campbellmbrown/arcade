@@ -21,6 +21,8 @@ public interface ISpriteBatchService
 
     void WindowResized();
 
+    DrawType DrawType { get; }
+
     ILayerView GuiLayerView { get; }
     ILayerView MainLayerView { get; }
 }
@@ -29,6 +31,8 @@ public class SpriteBatchService : ISpriteBatchService
 {
     readonly GraphicsDevice _graphicsDevice;
     readonly IRenderer _renderer;
+
+    public DrawType DrawType { get; private set; }
 
     public ILayerView GuiLayerView { get; private set; }
     public ILayerView MainLayerView { get; private set; }
@@ -88,6 +92,7 @@ public class SpriteBatchService : ISpriteBatchService
 
     public void Start(DrawType drawType)
     {
+        DrawType = drawType;
         switch (drawType)
         {
             case DrawType.Gui:
