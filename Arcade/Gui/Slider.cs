@@ -80,6 +80,9 @@ public class Slider : Widget, IClickDraggable
         }
     }
 
+    public override int GetContentWidth() => _trackTexture.Height * 2 + _trackChunkLength;
+    public override int GetContentHeight() => _thumbTexture.Height;
+
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
         base.Update(position, availableWidth, availableHeight);

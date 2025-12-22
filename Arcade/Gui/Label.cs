@@ -21,6 +21,9 @@ public class Label : Widget
         Height = (int)_text.Height;
     }
 
+    public override int GetContentWidth() => (int)_text.Width;
+    public override int GetContentHeight() => (int)_text.Height;
+
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
         _text.Position = Position;

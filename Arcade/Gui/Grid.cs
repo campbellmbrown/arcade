@@ -1,95 +1,200 @@
 using Arcade.Core;
 using Arcade.Visual;
 using Microsoft.Xna.Framework;
+using MonoGame.Extended;
 
 namespace Arcade.Gui;
 
-public enum GridUnitType
+public enum GridSizeType
 {
     Fixed,
     Auto,
+    Stretch,
 }
 
-public record GridUnitDimension
+public class GridSize
 {
-    public int Size { get; set; }
-    public GridUnitType Type { get; set; } = GridUnitType.Auto;
+    public float Value { get; private set; }
+    public GridSizeType Type { get; private set; }
+
+    /// <summary>
+    /// The size will be determined automatically based on the content.
+    /// </summary>
+    /// <returns>A GridSize instance representing an automatic size.</returns>
+    public static GridSize Auto() => new() { Type = GridSizeType.Auto };
+
+    /// <summary>
+    /// The size is fixed to the specified value.
+    /// </summary>
+    /// <param name="size">The fixed size.</param>
+    /// <returns>A GridSize instance representing a fixed size.</returns>
+    public static GridSize Fixed(int size) => new() { Type = GridSizeType.Fixed, Value = size };
+
+    /// <summary>
+    /// The size will stretch to fill the available space.
+    /// </summary>
+    /// <remarks>
+    /// TODO: support weighted stretching
+    /// </remarks>
+    /// <returns>A GridSize instance representing a stretch size.</returns>
+    public static GridSize Stretch() => new() { Type = GridSizeType.Stretch };
 }
 
-public class GridUnit
-{
-    public List<GridUnitDimension> Dimensions { get; set; }= [];
-
-    public int Count => Dimensions.Count;
-    public int TotalSize => Dimensions.Sum(d => d.Size);
-
-    public void Register(int widgetSize, int index)
-    {
-        if (Dimensions.Count <= index)
-        {
-            Dimensions.AddRange(Enumerable.Repeat(new GridUnitDimension(), index - Dimensions.Count + 1));
-        }
-        if (Dimensions[index].Type == GridUnitType.Auto)
-        {
-            if (widgetSize > Dimensions[index].Size)
-            {
-                Dimensions[index].Size = widgetSize;
-            }
-        }
-    }
-
-    public void FixSize(int dimension, int size)
-    {
-        Dimensions[dimension].Size = size;
-        Dimensions[dimension].Type = GridUnitType.Fixed;
-    }
-}
-
-
-public class Grid : Widget
+public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
 {
     readonly Dictionary<(int Column, int Row), IWidget> _widgets = [];
 
-    public int Spacing { get; init; } = 0;
-    public int Margin { get; init; } = 0;
+    public List<GridSize> Rows { get; } = rows;
+    public List<GridSize> Columns { get; } = columns;
 
-    public GridUnit Rows { get; } = new();
-    public GridUnit Columns { get; } = new();
+    readonly List<int> _columnSizes = [.. Enumerable.Repeat(0, columns.Count)];
+    readonly List<int> _rowSizes = [.. Enumerable.Repeat(0, rows.Count)];
 
-    public int RowCount => Rows.Count;
-    public int ColumnCount => Columns.Count;
+    public override int GetContentWidth()
+    {
+        int total = 0;
+        for (int column = 0; column < Columns.Count; column++)
+        {
+            if (Columns[column].Type == GridSizeType.Fixed)
+            {
+                total += (int)Columns[column].Value;
+            }
+            else if (Columns[column].Type == GridSizeType.Auto)
+            {
+                total += GetColumnMinWidth(column);
+            }
+        }
+        return total;
+    }
 
-    public void FixRowHeight(int row, int size) => Rows.FixSize(row, size);
-    public void FixColumnWidth(int column, int size) => Columns.FixSize(column, size);
+    public override int GetContentHeight()
+    {
+        int total = 0;
+        for (int row = 0; row < Rows.Count; row++)
+        {
+            if (Rows[row].Type == GridSizeType.Fixed)
+            {
+                total += (int)Rows[row].Value;
+            }
+            else if (Rows[row].Type == GridSizeType.Auto)
+            {
+                total += GetRowMinHeight(row);
+            }
+        }
+        return total;
+    }
 
     public void AddWidget(IWidget widget, int column, int row)
     {
+        if ((column < 0) || (column >= Columns.Count))
+        {
+            throw new ArgumentOutOfRangeException(nameof(column));
+        }
+        if ((row < 0) || (row >= Rows.Count))
+        {
+            throw new ArgumentOutOfRangeException(nameof(row));
+        }
         _widgets[(column, row)] = widget;
-        Rows.Register(widget.Height, row);
-        Columns.Register(widget.Width, column);
     }
 
-    public override void Update(Vector2 position)
+    public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
-        Width = Columns.TotalSize + (2 * Margin) + ((ColumnCount - 1) * Spacing);
-        Height = Rows.TotalSize + (2 * Margin) + ((RowCount - 1) * Spacing);
-        base.Update(position);
+        // If any of the columns are stretch, the grid takes all available width.
+        Width = Columns.Any(c => c.Type == GridSizeType.Stretch) ? availableWidth : GetContentWidth();
+        Height = Rows.Any(r => r.Type == GridSizeType.Stretch) ? availableHeight : GetContentHeight();
 
-        int heightOffset = Margin;
+        base.Update(position, availableWidth, availableHeight);
+
+        CalculateFinalColumnSizes(Width);
+        CalculateFinalRowSizes(Height);
+
+        int y = 0;
         for (int row = 0; row < Rows.Count; row++)
         {
-            int widthOffset = Margin;
-            int availableHeight = Rows.Dimensions[row].Size;
+            int x = 0;
             for (int column = 0; column < Columns.Count; column++)
             {
-                int availableWidth = Columns.Dimensions[column].Size;
                 if (_widgets.TryGetValue((column, row), out var widget))
                 {
-                    widget.Update(Position + new Vector2(widthOffset, heightOffset), availableWidth, availableHeight);
+                    widget.Update(position + new Vector2(x, y), _columnSizes[column], _rowSizes[row]);
                 }
-                widthOffset += availableWidth + Spacing;
+                x += _columnSizes[column];
             }
-            heightOffset += availableHeight + Spacing;
+            y += _rowSizes[row];
+        }
+    }
+
+    void CalculateFinalColumnSizes(int availableWidth)
+    {
+        int used = 0;
+        int stretchCount = 0;
+
+        for (int column = 0; column < Columns.Count; column++)
+        {
+            if (Columns[column].Type == GridSizeType.Fixed)
+            {
+                int size = (int)Columns[column].Value;
+                _columnSizes[column] = size;
+                used += size;
+            }
+            else if (Columns[column].Type == GridSizeType.Auto)
+            {
+                int size = GetColumnMinWidth(column);
+                _columnSizes[column] = size;
+                used += size;
+            }
+            else
+            {
+                stretchCount++; // Stretch will be calculated later
+            }
+        }
+
+        int remaining = Math.Max(0, availableWidth - used);
+        int perStretch = stretchCount > 0 ? remaining / stretchCount : 0;
+
+        for (int column = 0; column < Columns.Count; column++)
+        {
+            if (Columns[column].Type == GridSizeType.Stretch)
+            {
+                _columnSizes[column] = perStretch;
+            }
+        }
+    }
+
+    void CalculateFinalRowSizes(int availableHeight)
+    {
+        int used = 0;
+        int stretchCount = 0;
+
+        for (int row = 0; row < Rows.Count; row++)
+        {
+            if (Rows[row].Type == GridSizeType.Fixed)
+            {
+                int size = (int)Rows[row].Value;
+                _rowSizes[row] = size;
+                used += size;
+            }
+            else if (Rows[row].Type == GridSizeType.Auto)
+            {
+                int size = GetRowMinHeight(row);
+                _rowSizes[row] = size;
+                used += size;
+            }
+            else
+            {
+                stretchCount++; // Stretch will be calculated later
+            }
+        }
+
+        int remaining = Math.Max(0, availableHeight - used);
+        int perStretch = stretchCount > 0 ? remaining / stretchCount : 0;
+
+        for (int row = 0; row < Rows.Count; row++)
+        {
+            if (Rows[row].Type == GridSizeType.Stretch)
+            {
+                _rowSizes[row] = perStretch;
+            }
         }
     }
 
@@ -107,5 +212,50 @@ public class Grid : Widget
         {
             widget.Draw(renderer);
         }
+        // TODO: Remove debug drawing
+        int width = 0;
+        for (int column = 0; column <= Columns.Count; column++)
+        {
+            renderer.SpriteBatch.DrawLine(Position + new Vector2(width, 0), Position + new Vector2(width, Height), Color.Green * 0.25f, 4);
+            if (column < Columns.Count)
+            {
+                width += _columnSizes[column];
+            }
+        }
+        int height = 0;
+        for (int row = 0; row <= Rows.Count; row++)
+        {
+            renderer.SpriteBatch.DrawLine(Position + new Vector2(0, height), Position + new Vector2(Width, height), Color.Green * 0.25f, 4);
+            if (row < Rows.Count)
+            {
+                height += _rowSizes[row];
+            }
+        }
+    }
+
+    int GetColumnMinWidth(int column)
+    {
+        int maxColumnWidth = 0;
+        for (int row = 0; row < Rows.Count; row++)
+        {
+            if (_widgets.TryGetValue((column, row), out var widget))
+            {
+                maxColumnWidth = Math.Max(maxColumnWidth, widget.GetContentWidth());
+            }
+        }
+        return maxColumnWidth;
+    }
+
+    int GetRowMinHeight(int row)
+    {
+        int maxRowHeight = 0;
+        for (int column = 0; column < Columns.Count; column++)
+        {
+            if (_widgets.TryGetValue((column, row), out var widget))
+            {
+                maxRowHeight = Math.Max(maxRowHeight, widget.GetContentHeight());
+            }
+        }
+        return maxRowHeight;
     }
 }

@@ -45,6 +45,9 @@ public class PushButton : Widget, IClickable
         }
     }
 
+    public override int GetContentWidth() => _widget.GetContentWidth();
+    public override int GetContentHeight() => _widget.GetContentHeight();
+
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
         base.Update(position, availableWidth, availableHeight);
@@ -73,7 +76,7 @@ public class PushButton : Widget, IClickable
         Rectangle topEdgeChunkRect = new(TEXTURE_CORNER_PIXELS, 0, _chunkWidth, TEXTURE_CORNER_PIXELS);
         Rectangle bottomEdgeChunkRect = new(TEXTURE_CORNER_PIXELS, _texture.Height - TEXTURE_CORNER_PIXELS, _chunkWidth, TEXTURE_CORNER_PIXELS);
         Rectangle partialHorizontalChunkRect = new(TEXTURE_CORNER_PIXELS, TEXTURE_CORNER_PIXELS, _chunkWidth, _partialHorizontalChunkHeight);
-        Rectangle particalVerticalChunkRect = new(TEXTURE_CORNER_PIXELS, TEXTURE_CORNER_PIXELS, _partialVerticalChunkWidth, _chunkHeight);
+        Rectangle partialVerticalChunkRect = new(TEXTURE_CORNER_PIXELS, TEXTURE_CORNER_PIXELS, _partialVerticalChunkWidth, _chunkHeight);
         Rectangle partialRemainingChunkRect = new(TEXTURE_CORNER_PIXELS, TEXTURE_CORNER_PIXELS, _partialVerticalChunkWidth, _partialHorizontalChunkHeight);
 
         renderer.SpriteBatch.Draw(_texture, new Vector2(Position.X, Position.Y), topLeftRect, Color.White);
@@ -117,11 +120,11 @@ public class PushButton : Widget, IClickable
             chunkDrawPosition.X += _chunkWidth;
         }
 
-        // Draw the partical vertical chunks
+        // Draw the partial vertical chunks
         chunkDrawPosition = new(Position.X + TEXTURE_CORNER_PIXELS + _numHorizontalFullChunks * _chunkWidth, Position.Y + TEXTURE_CORNER_PIXELS);
         for (int yIdx = 0; yIdx < _numVerticalFullChunks; yIdx++)
         {
-            renderer.SpriteBatch.Draw(_texture, chunkDrawPosition, particalVerticalChunkRect, Color.White);
+            renderer.SpriteBatch.Draw(_texture, chunkDrawPosition, partialVerticalChunkRect, Color.White);
             chunkDrawPosition.Y += _chunkHeight;
         }
 

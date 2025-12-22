@@ -7,12 +7,48 @@ namespace Arcade.Gui;
 
 public interface IWidget : IVisual, IFrameTickable
 {
+    /// <summary>
+    /// The width of the widget in pixels, including any layout spacing (e.g. due to padding or alignment).
+    /// </summary>
+    /// <value>The width in pixels.</value>
     int Width { get; }
+
+    /// <summary>
+    /// The height of the widget in pixels, including any layout spacing (e.g. due to padding or alignment).
+    /// </summary>
+    /// <value>The height in pixels.</value>
     int Height { get; }
+
+    /// <summary>
+    /// The position of the widget in the view.
+    /// </summary>
+    /// <value>The position.</value>
     Vector2 Position { get; }
+
+    /// <summary>
+    /// The alignment of the widget within its allocated space.
+    /// </summary>
+    /// <value>The alignment.</value>
     Alignment Alignment { get; init; }
 
-    void Update(Vector2 position);
+    /// <summary>
+    /// Gets the content width of the widget, excluding any layout spacing (e.g. due to padding or alignment).
+    /// </summary>
+    /// <returns>The content width in pixels.</returns>
+    int GetContentWidth();
+
+    /// <summary>
+    /// Gets the content height of the widget, excluding any layout spacing (e.g. due to padding or alignment).
+    /// </summary>
+    /// <returns>The content height in pixels.</returns>
+    int GetContentHeight();
+
+    /// <summary>
+    /// Updates the widget's position and size based on the given available space.
+    /// </summary>
+    /// <param name="position">The top-left position of the available space.</param>
+    /// <param name="availableWidth">The width of the available space in pixels.</param>
+    /// <param name="availableHeight">The height of the available space in pixels.</param>
     void Update(Vector2 position, int availableWidth, int availableHeight);
 }
 
@@ -36,10 +72,9 @@ public abstract class Widget : IWidget
         }
     }
 
-    public virtual void Update(Vector2 position)
-    {
-        Position = position + _offset;
-    }
+    public abstract int GetContentWidth();
+
+    public abstract int GetContentHeight();
 
     public virtual void Update(Vector2 position, int availableWidth, int availableHeight)
     {
@@ -93,7 +128,7 @@ public abstract class Widget : IWidget
 
     public virtual void Draw(IRenderer renderer)
     {
-        // renderer.DrawBounds(new RectangleF(Position.X, Position.Y, Width, Height));
+        // Do nothing by default
     }
 
     static void CheckMutuallyExclusive(Alignment value, params Alignment[] flags)
