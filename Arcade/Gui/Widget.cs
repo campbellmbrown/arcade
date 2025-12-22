@@ -29,7 +29,19 @@ public interface IWidget : IVisual, IFrameTickable
     /// The alignment of the widget within its allocated space.
     /// </summary>
     /// <value>The alignment.</value>
-    Alignment Alignment { get; init; }
+    Alignment Alignment { get; set; }
+
+    /// <summary>
+    /// The horizontal alignment of the widget within its allocated space derived from <see cref="Alignment"/>.
+    /// </summary>
+    /// <value>The horizontal alignment.</value>
+    Alignment HorizontalAlignment { get; }
+
+    /// <summary>
+    /// The vertical alignment of the widget within its allocated space derived from <see cref="Alignment"/>.
+    /// </summary>
+    /// <value>The vertical alignment.</value>
+    Alignment VerticalAlignment { get; }
 
     /// <summary>
     /// Gets the content width of the widget, excluding any layout spacing (e.g. due to padding or alignment).
@@ -60,17 +72,30 @@ public abstract class Widget : IWidget
     public int Height { get; protected set; }
     public Vector2 Position { get; protected set; } = Vector2.Zero;
 
-    Alignment _alignment;
+    Alignment _alignment = Alignment.Left | Alignment.VCenter;
     public Alignment Alignment
     {
         get => _alignment;
-        init
+        set
         {
             CheckMutuallyExclusive(value, Alignment.Left, Alignment.Right, Alignment.HCenter, Alignment.HStretch);
             CheckMutuallyExclusive(value, Alignment.Top, Alignment.Bottom, Alignment.VCenter, Alignment.VStretch);
             _alignment = value;
+
+            if (HorizontalAlignment == 0)
+            {
+                _alignment |= Alignment.Left;
+            }
+            if (VerticalAlignment == 0)
+            {
+                _alignment |= Alignment.VCenter;
+            }
+            Debug.Assert(_alignment.FlagCount() == 2);
         }
     }
+
+    public Alignment HorizontalAlignment => Alignment & (Alignment.Left | Alignment.Right | Alignment.HCenter | Alignment.HStretch);
+    public Alignment VerticalAlignment => Alignment & (Alignment.Top | Alignment.Bottom | Alignment.VCenter | Alignment.VStretch);
 
     public abstract int GetContentWidth();
 
@@ -87,20 +112,7 @@ public abstract class Widget : IWidget
             Height = availableHeight;
         }
 
-        var horizontalAlignment = Alignment & (Alignment.Left | Alignment.Right | Alignment.HCenter | Alignment.HStretch);
-        var verticalAlignment = Alignment & (Alignment.Top | Alignment.Bottom | Alignment.VCenter | Alignment.VStretch);
-        if (horizontalAlignment == 0)
-        {
-            horizontalAlignment = Alignment.Left;
-        }
-        if (verticalAlignment == 0)
-        {
-            verticalAlignment = Alignment.VCenter;
-        }
-        Debug.Assert(horizontalAlignment.FlagCount() == 1);
-        Debug.Assert(verticalAlignment.FlagCount() == 1);
-
-        float offsetX = horizontalAlignment switch
+        float offsetX = HorizontalAlignment switch
         {
             Alignment.Left => 0f,
             Alignment.HCenter => (availableWidth - Width) / 2f,
@@ -108,7 +120,7 @@ public abstract class Widget : IWidget
             Alignment.HStretch => 0f,
             _ => throw new ArgumentException("Invalid horizontal alignment.")
         };
-        float offsetY = verticalAlignment switch
+        float offsetY = VerticalAlignment switch
         {
             Alignment.Top => 0f,
             Alignment.VCenter => (availableHeight - Height) / 2f,

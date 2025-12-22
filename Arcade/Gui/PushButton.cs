@@ -51,7 +51,7 @@ public class PushButton : Widget, IClickable
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
         base.Update(position, availableWidth, availableHeight);
-        _widget.Update(position, availableWidth, availableHeight);
+        _widget.Update(Position, Width, Height);
 
         int widthExcludingEnds = Width - 2 * TEXTURE_CORNER_PIXELS;
         int heightExcludingEnds = Height - 2 * TEXTURE_CORNER_PIXELS;
