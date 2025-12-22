@@ -58,7 +58,7 @@ public interface IFontProvider
     /// <param name="id">The ID of the font.</param>
     /// <typeparam name="T">The type of the ID.</typeparam>
     /// <returns>The font for the given ID.</returns>
-    BitmapFont GetFont<T>(T id) where T : Enum;
+    BitmapFont Get<T>(T id) where T : Enum;
 
     BitmapFont Default { get; }
 }
@@ -73,7 +73,7 @@ public class FontProvider(ContentManager content) : IFontProvider
         _fonts.Add(id, font);
     }
 
-    public BitmapFont GetFont<T>(T id) where T : Enum
+    public BitmapFont Get<T>(T id) where T : Enum
     {
         return _fonts[id];
     }
@@ -93,7 +93,7 @@ public class ContentCreator(IFontProvider fontProvider) : IContentCreator
 {
     public ITextDisplay TextDisplay(string text, Color color, Enum fontId, float scale = 1f)
     {
-        var font = fontProvider.GetFont(fontId);
+        var font = fontProvider.Get(fontId);
         return CreateTextDisplay(text, font, color, scale);
     }
 

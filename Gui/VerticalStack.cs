@@ -4,9 +4,18 @@ namespace Arcade.Gui;
 
 public class VerticalStack : Stack
 {
+    public int? FixedWidth { get; init; }
+
     public override void Update(Vector2 position)
     {
-        Width = (Widgets.Count > 0 ? Widgets.Max(w => w.Width) : 0) + 2 * Margin;
+        if (FixedWidth.HasValue)
+        {
+            Width = FixedWidth.Value;
+        }
+        else
+        {
+            Width = (Widgets.Count > 0 ? Widgets.Max(w => w.Width) : 0) + 2 * Margin;
+        }
         Height = (Widgets.Count > 0 ? Widgets.Sum(w => w.Height) + (Widgets.Count - 1) * Spacing : 0) + 2 * Margin;
         base.Update(position);
 
