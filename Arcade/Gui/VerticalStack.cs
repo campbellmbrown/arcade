@@ -8,26 +8,26 @@ public class VerticalStack : Stack
 
     public override int GetContentWidth()
     {
-        return FixedWidth ?? (Widgets.Count > 0 ? Widgets.Max(w => w.GetContentWidth()) : 0) + (2 * Margin);
+        return FixedWidth ?? (Widgets.Count > 0 ? Widgets.Max(w => w.GetContentWidth()) : 0) + MarginLeft + MarginRight;
     }
 
     public override int GetContentHeight()
     {
-        return (Widgets.Count > 0 ? Widgets.Sum(w => w.GetContentHeight()) + (Widgets.Count - 1) * Spacing : 0) + (2 * Margin);
+        return (Widgets.Count > 0 ? Widgets.Sum(w => w.GetContentHeight()) + (Widgets.Count - 1) * Spacing : 0) + MarginTop + MarginBottom;
     }
 
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
-        Width = GetContentWidth();
-        Height = GetContentHeight();
+        Width = GetContentWidth() - MarginLeft - MarginRight;
+        Height = GetContentHeight() - MarginTop - MarginBottom;
         base.Update(position, availableWidth, availableHeight);
 
-        int heightOffset = Margin;
+        int heightOffset = 0;
         foreach (var widget in Widgets)
         {
             int availableWidgetHeight = widget.GetContentHeight();
-            widget.Update(Position + new Vector2(Margin, heightOffset), Width - 2 * Margin, availableWidgetHeight);
-            heightOffset += widget.Height + Spacing;
+            widget.Update(Position + new Vector2(0, heightOffset), Width, availableWidgetHeight);
+            heightOffset += widget.GetContentHeight() + Spacing;
         }
     }
 }

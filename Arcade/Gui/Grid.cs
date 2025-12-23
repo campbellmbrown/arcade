@@ -64,7 +64,7 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
                 total += GetColumnMinWidth(column);
             }
         }
-        return total;
+        return total + MarginLeft + MarginRight;
     }
 
     public override int GetContentHeight()
@@ -81,28 +81,27 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
                 total += GetRowMinHeight(row);
             }
         }
-        return total;
+        return total + MarginTop + MarginBottom;
     }
 
-    public void AddWidget(IWidget widget, int column, int row)
+    public void AddWidget(IWidget widget, int row, int column)
     {
-        if ((column < 0) || (column >= Columns.Count))
-        {
-            throw new ArgumentOutOfRangeException(nameof(column));
-        }
         if ((row < 0) || (row >= Rows.Count))
         {
             throw new ArgumentOutOfRangeException(nameof(row));
         }
-        _widgets[(column, row)] = widget;
+        if ((column < 0) || (column >= Columns.Count))
+        {
+            throw new ArgumentOutOfRangeException(nameof(column));
+        }
+        _widgets[(row, column)] = widget;
     }
 
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
         // If any of the columns are stretch, the grid takes all available width.
-        Width = Columns.Any(c => c.Type == GridSizeType.Stretch) ? availableWidth : GetContentWidth();
-        Height = Rows.Any(r => r.Type == GridSizeType.Stretch) ? availableHeight : GetContentHeight();
-
+        Width = (Columns.Any(c => c.Type == GridSizeType.Stretch) ? availableWidth : GetContentWidth()) - MarginLeft - MarginRight;
+        Height = (Rows.Any(r => r.Type == GridSizeType.Stretch) ? availableHeight : GetContentHeight()) - MarginTop - MarginBottom;
         base.Update(position, availableWidth, availableHeight);
 
         CalculateFinalColumnSizes(Width);
@@ -114,14 +113,78 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
             int x = 0;
             for (int column = 0; column < Columns.Count; column++)
             {
-                if (_widgets.TryGetValue((column, row), out var widget))
+                if (_widgets.TryGetValue((row, column), out var widget))
                 {
-                    widget.Update(position + new Vector2(x, y), _columnSizes[column], _rowSizes[row]);
+                    widget.Update(Position + new Vector2(x, y), _columnSizes[column], _rowSizes[row]);
                 }
                 x += _columnSizes[column];
             }
             y += _rowSizes[row];
         }
+    }
+
+    public override void FrameTick(IFrameTickService frameTickService)
+    {
+        foreach (var widget in _widgets.Values)
+        {
+            widget.FrameTick(frameTickService);
+        }
+    }
+
+    public override void Draw(IRenderer renderer)
+    {
+        // TODO: Remove debug drawing
+        var totalWidth = _columnSizes.Sum();
+        var totalHeight = _rowSizes.Sum();
+        int width = 0;
+        for (int column = 0; column <= Columns.Count; column++)
+        {
+            renderer.SpriteBatch.DrawLine(Position + new Vector2(width, 0), Position + new Vector2(width, totalHeight), Color.Green * 0.25f, 4);
+            if (column < Columns.Count)
+            {
+                width += _columnSizes[column];
+            }
+        }
+        int height = 0;
+        for (int row = 0; row <= Rows.Count; row++)
+        {
+            renderer.SpriteBatch.DrawLine(Position + new Vector2(0, height), Position + new Vector2(totalWidth, height), Color.Green * 0.25f, 4);
+            if (row < Rows.Count)
+            {
+                height += _rowSizes[row];
+            }
+        }
+        foreach (var widget in _widgets.Values)
+        {
+            widget.Draw(renderer);
+        }
+        base.Draw(renderer);
+    }
+
+    int GetColumnMinWidth(int column)
+    {
+        int maxColumnWidth = 0;
+        for (int row = 0; row < Rows.Count; row++)
+        {
+            if (_widgets.TryGetValue((row, column), out var widget))
+            {
+                maxColumnWidth = Math.Max(maxColumnWidth, widget.GetContentWidth());
+            }
+        }
+        return maxColumnWidth;
+    }
+
+    int GetRowMinHeight(int row)
+    {
+        int maxRowHeight = 0;
+        for (int column = 0; column < Columns.Count; column++)
+        {
+            if (_widgets.TryGetValue((row, column), out var widget))
+            {
+                maxRowHeight = Math.Max(maxRowHeight, widget.GetContentHeight());
+            }
+        }
+        return maxRowHeight;
     }
 
     void CalculateFinalColumnSizes(int availableWidth)
@@ -196,66 +259,5 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
                 _rowSizes[row] = perStretch;
             }
         }
-    }
-
-    public override void FrameTick(IFrameTickService frameTickService)
-    {
-        foreach (var widget in _widgets.Values)
-        {
-            widget.FrameTick(frameTickService);
-        }
-    }
-
-    public override void Draw(IRenderer renderer)
-    {
-        foreach (var widget in _widgets.Values)
-        {
-            widget.Draw(renderer);
-        }
-        // TODO: Remove debug drawing
-        int width = 0;
-        for (int column = 0; column <= Columns.Count; column++)
-        {
-            renderer.SpriteBatch.DrawLine(Position + new Vector2(width, 0), Position + new Vector2(width, Height), Color.Green * 0.25f, 4);
-            if (column < Columns.Count)
-            {
-                width += _columnSizes[column];
-            }
-        }
-        int height = 0;
-        for (int row = 0; row <= Rows.Count; row++)
-        {
-            renderer.SpriteBatch.DrawLine(Position + new Vector2(0, height), Position + new Vector2(Width, height), Color.Green * 0.25f, 4);
-            if (row < Rows.Count)
-            {
-                height += _rowSizes[row];
-            }
-        }
-    }
-
-    int GetColumnMinWidth(int column)
-    {
-        int maxColumnWidth = 0;
-        for (int row = 0; row < Rows.Count; row++)
-        {
-            if (_widgets.TryGetValue((column, row), out var widget))
-            {
-                maxColumnWidth = Math.Max(maxColumnWidth, widget.GetContentWidth());
-            }
-        }
-        return maxColumnWidth;
-    }
-
-    int GetRowMinHeight(int row)
-    {
-        int maxRowHeight = 0;
-        for (int column = 0; column < Columns.Count; column++)
-        {
-            if (_widgets.TryGetValue((column, row), out var widget))
-            {
-                maxRowHeight = Math.Max(maxRowHeight, widget.GetContentHeight());
-            }
-        }
-        return maxRowHeight;
     }
 }

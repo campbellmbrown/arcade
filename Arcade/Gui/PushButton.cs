@@ -25,9 +25,6 @@ public class PushButton : Widget, IClickable
     {
         _texture = texture;
         _widget = widget;
-
-        Width = _widget.Width;
-        Height = _widget.Height;
     }
 
     public RectangleF ClickArea => new(Position, new Size2(Width, Height));
@@ -45,11 +42,13 @@ public class PushButton : Widget, IClickable
         }
     }
 
-    public override int GetContentWidth() => _widget.GetContentWidth();
-    public override int GetContentHeight() => _widget.GetContentHeight();
+    public override int GetContentWidth() => _widget.GetContentWidth() + MarginLeft + MarginRight;
+    public override int GetContentHeight() => _widget.GetContentHeight() + MarginTop + MarginBottom;
 
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
+        Width = GetContentWidth() - MarginLeft - MarginRight;
+        Height = GetContentHeight() - MarginTop - MarginBottom;
         base.Update(position, availableWidth, availableHeight);
         _widget.Update(Position, Width, Height);
 
@@ -112,6 +111,22 @@ public class PushButton : Widget, IClickable
             chunkDrawPosition.X += _chunkWidth;
         }
 
+        // Draw the left edge chunks
+        chunkDrawPosition = new(Position.X, Position.Y + TEXTURE_CORNER_PIXELS);
+        for (int yIdx = 0; yIdx < _numVerticalFullChunks; yIdx++)
+        {
+            renderer.SpriteBatch.Draw(_texture, chunkDrawPosition, new Rectangle(0, TEXTURE_CORNER_PIXELS, TEXTURE_CORNER_PIXELS, _chunkHeight), Color.White);
+            chunkDrawPosition.Y += _chunkHeight;
+        }
+
+        // Draw the right edge chunks
+        chunkDrawPosition = new(Position.X + Width - TEXTURE_CORNER_PIXELS, Position.Y + TEXTURE_CORNER_PIXELS);
+        for (int yIdx = 0; yIdx < _numVerticalFullChunks; yIdx++)
+        {
+            renderer.SpriteBatch.Draw(_texture, chunkDrawPosition, new Rectangle(_texture.Width - TEXTURE_CORNER_PIXELS, TEXTURE_CORNER_PIXELS, TEXTURE_CORNER_PIXELS, _chunkHeight), Color.White);
+            chunkDrawPosition.Y += _chunkHeight;
+        }
+
         // Draw the partial horizontal chunks
         chunkDrawPosition = new(Position.X + TEXTURE_CORNER_PIXELS, Position.Y + TEXTURE_CORNER_PIXELS + _numVerticalFullChunks * _chunkHeight);
         for (int xIdx = 0; xIdx < _numHorizontalFullChunks; xIdx++)
@@ -148,5 +163,6 @@ public class PushButton : Widget, IClickable
         renderer.SpriteBatch.Draw(_texture, new Vector2(Position.X + TEXTURE_CORNER_PIXELS + _numHorizontalFullChunks * _chunkWidth, Position.Y + Height - TEXTURE_CORNER_PIXELS), remainingBottomRect, Color.White);
 
         _widget.Draw(renderer);
+        base.Draw(renderer);
     }
 }

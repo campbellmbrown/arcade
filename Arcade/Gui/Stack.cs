@@ -6,7 +6,6 @@ namespace Arcade.Gui;
 public abstract class Stack : Widget
 {
     public int Spacing { get; init; } = 0;
-    public int Margin { get; init; } = 0;
 
     protected List<IWidget> Widgets { get; } = [];
 

@@ -10,24 +10,22 @@ public class Label : Widget
     public Label(ITextDisplay text)
     {
         _text = text;
-        Width = (int)_text.Width;
-        Height = (int)_text.Height;
     }
 
     public void UpdateText(string text)
     {
         _text.Text = text;
-        Width = (int)_text.Width;
-        Height = (int)_text.Height;
     }
 
-    public override int GetContentWidth() => (int)_text.Width;
-    public override int GetContentHeight() => (int)_text.Height;
+    public override int GetContentWidth() => (int)_text.Width + MarginLeft + MarginRight;
+    public override int GetContentHeight() => (int)_text.Height + MarginTop + MarginBottom;
 
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
-        _text.Position = Position;
+        Width = GetContentWidth() - MarginLeft - MarginRight;
+        Height = GetContentHeight() - MarginTop - MarginBottom;
         base.Update(position, availableWidth, availableHeight);
+        _text.Position = Position;
     }
 
     public override void Draw(IRenderer renderer)
