@@ -222,20 +222,20 @@ public abstract class Widget : IWidget
 
     protected virtual void ResolvePosition(Vector2 position, int availableWidth, int availableHeight)
     {
-        float offsetX = HorizontalAlignment switch
+        float offsetX = MarginLeft + HorizontalAlignment switch
         {
-            Alignment.Left => MarginLeft,
-            Alignment.HCenter => MarginLeft + (availableWidth - OccupiedWidth) / 2f,
+            Alignment.Left => 0,
+            Alignment.HCenter => (availableWidth - OccupiedWidth) / 2f,
             Alignment.Right => availableWidth - OccupiedWidth,
-            Alignment.HStretch => MarginLeft,
+            Alignment.HStretch => 0,
             _ => throw new ArgumentException("Invalid horizontal alignment.")
         };
-        float offsetY = VerticalAlignment switch
+        float offsetY = MarginTop + VerticalAlignment switch
         {
-            Alignment.Top => MarginTop,
-            Alignment.VCenter => MarginTop + (availableHeight - OccupiedHeight) / 2f,
+            Alignment.Top => 0,
+            Alignment.VCenter => (availableHeight - OccupiedHeight) / 2f,
             Alignment.Bottom => availableHeight - OccupiedHeight,
-            Alignment.VStretch => MarginTop,
+            Alignment.VStretch => 0,
             _ => throw new ArgumentException("Invalid vertical alignment.")
         };
         _offset = new Vector2(offsetX, offsetY);

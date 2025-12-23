@@ -8,6 +8,8 @@ namespace Arcade.Gui;
 
 public class Slider : Widget, IClickDraggable
 {
+    const int DEFAULT_WIDTH = 50;
+
     readonly Texture2D _trackTexture;
     readonly Texture2D _thumbTexture;
 
@@ -16,19 +18,19 @@ public class Slider : Widget, IClickDraggable
     readonly float _initial;
     readonly float _range;
 
-    readonly float _sliderTravelDistance;
+    float _sliderTravelDistance;
 
     float _thumbStopLeftX;
     float _trackY;
     Vector2 _thumbDrawPosition;
 
-    readonly int _trackChunkLength;
-    readonly int _numFullTrackChunks;
-    readonly int _partialTrackChunkLength;
+    int _trackChunkLength;
+    int _numFullTrackChunks;
+    int _partialTrackChunkLength;
 
     readonly List<Action<float>> _setters = [];
 
-    public Slider(Texture2D thumbTexture, Texture2D trackTexture, int width, float min, float max, float initial)
+    public Slider(Texture2D thumbTexture, Texture2D trackTexture, float min, float max, float initial = 0)
     {
         if (thumbTexture.Height < trackTexture.Height)
         {
@@ -51,15 +53,6 @@ public class Slider : Widget, IClickDraggable
         _initial = initial;
         _range = _max - _min;
         Value = _initial;
-
-        Width = width;
-        Height = _thumbTexture.Height;
-        _sliderTravelDistance = width - _thumbTexture.Width;
-
-        int trackLengthExcludingEnds = width - 2 * _trackTexture.Height;
-        _trackChunkLength = _trackTexture.Width - 2 * _trackTexture.Height;
-        _numFullTrackChunks = trackLengthExcludingEnds / _trackChunkLength;
-        _partialTrackChunkLength = trackLengthExcludingEnds % _trackChunkLength;
     }
 
     public float Value { get; private set; }
@@ -78,18 +71,6 @@ public class Slider : Widget, IClickDraggable
         {
             setter(Value);
         }
-    }
-
-    public override void Update(Vector2 position, int availableWidth, int availableHeight)
-    {
-        // TODO: fix slider
-        base.Update(position, availableWidth, availableHeight);
-        _thumbStopLeftX = Position.X + _thumbTexture.Width / 2f;
-        _trackY = Position.Y + (_thumbTexture.Height / 2f);
-        _thumbDrawPosition = new Vector2(
-            _thumbStopLeftX + ((Value - _min) / _range * _sliderTravelDistance) - _thumbTexture.Width / 2f,
-            _trackY - _thumbTexture.Height / 2f
-        );
     }
 
     public override void Draw(IRenderer renderer)
@@ -142,6 +123,28 @@ public class Slider : Widget, IClickDraggable
     {
     }
 
-    protected override int IntrinsicWidth() => _trackTexture.Height * 2 + _trackChunkLength;
+    protected override void ResolveWidth(int availableWidth)
+    {
+        base.ResolveWidth(availableWidth);
+        _sliderTravelDistance = Width - _thumbTexture.Width;
+        int trackLengthExcludingEnds = Width - 2 * _trackTexture.Height;
+        _trackChunkLength = _trackTexture.Width - 2 * _trackTexture.Height;
+        _numFullTrackChunks = trackLengthExcludingEnds / _trackChunkLength;
+        _partialTrackChunkLength = trackLengthExcludingEnds % _trackChunkLength;
+    }
+
+    protected override void ResolvePosition(Vector2 position, int availableWidth, int availableHeight)
+    {
+        base.ResolvePosition(position, availableWidth, availableHeight);
+        _thumbStopLeftX = Position.X + _thumbTexture.Width / 2f;
+        _trackY = Position.Y + (_thumbTexture.Height / 2f);
+        _thumbDrawPosition = new Vector2(
+            _thumbStopLeftX + ((Value - _min) / _range * _sliderTravelDistance) - _thumbTexture.Width / 2f,
+            _trackY - _thumbTexture.Height / 2f
+        );
+    }
+
+    protected override int IntrinsicWidth() => DEFAULT_WIDTH;
+
     protected override int IntrinsicHeight() => _thumbTexture.Height;
 }
