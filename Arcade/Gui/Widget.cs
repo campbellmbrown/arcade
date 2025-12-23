@@ -86,6 +86,10 @@ public interface IWidget : IVisual, IFrameTickable
     /// <value>The margin in pixels.</value>
     public int MarginAll { set; }
 
+    public Color? BorderColor { get; set; }
+
+    public float BorderThickness { get; set; }
+
     /// <summary>
     /// The measured intrinsic width of the widget including margins. Can be used for calculating layout, but should
     /// not be used to identify the actual rendered width.
@@ -161,6 +165,9 @@ public abstract class Widget : IWidget
     public Alignment HorizontalAlignment => Alignment & (Alignment.Left | Alignment.Right | Alignment.HCenter | Alignment.HStretch);
     public Alignment VerticalAlignment => Alignment & (Alignment.Top | Alignment.Bottom | Alignment.VCenter | Alignment.VStretch);
 
+    public Color? BorderColor { get; set; } = null;
+    public float BorderThickness { get; set; } = 1f;
+
     public int MeasureWidth() => IntrinsicWidth() + MarginLeft + MarginRight;
 
     public int MeasureHeight() => IntrinsicHeight() + MarginTop + MarginBottom;
@@ -179,9 +186,12 @@ public abstract class Widget : IWidget
 
     public virtual void Draw(IRenderer renderer)
     {
+        if (BorderColor.HasValue)
+        {
+            renderer.SpriteBatch.DrawRectangle(new RectangleF(Position.X, Position.Y, Width, Height), BorderColor.Value, BorderThickness);
+        }
         // Uncomment for debugging layout
         // renderer.SpriteBatch.DrawRectangle(new RectangleF(Position.X - MarginLeft, Position.Y - MarginTop, OccupiedWidth, OccupiedHeight), Color.Red * 0.5f, 1);
-        // renderer.SpriteBatch.DrawRectangle(new RectangleF(Position.X, Position.Y, Width, Height), Color.Blue * 0.5f, 1);
         // renderer.SpriteBatch.DrawPoint(Position, Color.Yellow, 1);
     }
 

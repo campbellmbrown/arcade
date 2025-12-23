@@ -44,6 +44,7 @@ public abstract class Slider : Widget, IClickDraggable
 
     public Slider(Texture2D thumbTexture, Texture2D trackTexture, float min, float max)
     {
+        // TODO: add a way to register default thumb and track textures. Same for PushButton.
         if (thumbTexture.Height < trackTexture.Height)
         {
             throw new ArgumentException("The thumb texture height must be greater or equal to the track texture height.");
