@@ -59,6 +59,9 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
         }
     }
 
+    public Color? CellEdgeColor { get; set; } = null;
+    public float CellEdgeThickness { get; set; } = 1f;
+
     readonly List<int> _columnSizes = [.. Enumerable.Repeat(0, columns.Count)];
     readonly List<int> _rowSizes = [.. Enumerable.Repeat(0, rows.Count)];
 
@@ -85,27 +88,39 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
 
     public override void Draw(IRenderer renderer)
     {
-        // Uncomment for debugging layout
-        // var totalWidth = _columnSizes.Sum();
-        // var totalHeight = _rowSizes.Sum();
-        // int width = 0;
-        // for (int column = 0; column <= Columns.Count; column++)
-        // {
-        //     renderer.SpriteBatch.DrawLine(Position + new Vector2(width, 0), Position + new Vector2(width, totalHeight), Color.Green * 0.25f, 4);
-        //     if (column < Columns.Count)
-        //     {
-        //         width += _columnSizes[column];
-        //     }
-        // }
-        // int height = 0;
-        // for (int row = 0; row <= Rows.Count; row++)
-        // {
-        //     renderer.SpriteBatch.DrawLine(Position + new Vector2(0, height), Position + new Vector2(totalWidth, height), Color.Green * 0.25f, 4);
-        //     if (row < Rows.Count)
-        //     {
-        //         height += _rowSizes[row];
-        //     }
-        // }
+        if (CellEdgeColor.HasValue)
+        {
+            var totalWidth = _columnSizes.Sum() + (Columns.Count - 1) * HorizontalSpacing;
+            var totalHeight = _rowSizes.Sum() + (Rows.Count - 1) * VerticalSpacing;
+            int width = 0;
+            for (int column = 0; column <= Columns.Count; column++)
+            {
+                if ((column > 0) && (column < Columns.Count))
+                {
+                    renderer.SpriteBatch.DrawLine(Position + new Vector2(width, 0), Position + new Vector2(width, totalHeight), CellEdgeColor.Value, CellEdgeThickness);
+                    width += HorizontalSpacing;
+                }
+                renderer.SpriteBatch.DrawLine(Position + new Vector2(width, 0), Position + new Vector2(width, totalHeight), CellEdgeColor.Value, CellEdgeThickness);
+                if (column < Columns.Count)
+                {
+                    width += _columnSizes[column];
+                }
+            }
+            int height = 0;
+            for (int row = 0; row <= Rows.Count; row++)
+            {
+                if ((row > 0) && (row < Rows.Count))
+                {
+                    renderer.SpriteBatch.DrawLine(Position + new Vector2(0, height), Position + new Vector2(totalWidth, height), CellEdgeColor.Value, CellEdgeThickness);
+                    height += VerticalSpacing;
+                }
+                renderer.SpriteBatch.DrawLine(Position + new Vector2(0, height), Position + new Vector2(totalWidth, height), CellEdgeColor.Value, CellEdgeThickness);
+                if (row < Rows.Count)
+                {
+                    height += _rowSizes[row];
+                }
+            }
+        }
 
         base.Draw(renderer);
         foreach (var widget in _widgets.Values)
