@@ -14,6 +14,16 @@ public abstract class Stack : Widget
         Widgets.Add(widget);
     }
 
+    public void RemoveWidget(IWidget widget)
+    {
+        Widgets.Remove(widget);
+    }
+
+    public void Clear()
+    {
+        Widgets.Clear();
+    }
+
     public override void FrameTick(IFrameTickService frameTickService)
     {
         base.FrameTick(frameTickService);

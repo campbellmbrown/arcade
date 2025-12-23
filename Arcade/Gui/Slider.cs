@@ -16,18 +16,33 @@ public abstract class Slider : Widget, IClickDraggable
     protected int _numFullTrackChunks;
     protected int _partialTrackChunkLength;
 
-    readonly float _min;
-    readonly float _max;
-    readonly float _initial;
-    readonly float _range;
-
     readonly List<Action<float>> _setters = [];
 
-    public float Value { get; protected set; }
+    public float Min { get; set; }
+    public float Max { get; set; }
+    public float Range => Max - Min;
+
+    float _value;
+    public float Value
+    {
+        get => _value;
+        set
+        {
+            if ((value < Min) || (value > Max))
+            {
+                throw new ArgumentOutOfRangeException(nameof(Value), $"Value must be between {Min} and {Max}.");
+            }
+            _value = value;
+            foreach (var setter in _setters)
+            {
+                setter(Value);
+            }
+        }
+    }
 
     public RectangleF ClickArea => new(Position.X, Position.Y, Width, Height);
 
-    public Slider(Texture2D thumbTexture, Texture2D trackTexture, float min, float max, float initial = 0)
+    public Slider(Texture2D thumbTexture, Texture2D trackTexture, float min, float max)
     {
         if (thumbTexture.Height < trackTexture.Height)
         {
@@ -37,34 +52,19 @@ public abstract class Slider : Widget, IClickDraggable
         {
             throw new ArgumentException("The minimum value must be less than the maximum value.");
         }
-        if (initial < min || initial > max)
-        {
-            throw new ArgumentException("The initial value must be within the range of the slider.");
-        }
 
         _trackTexture = trackTexture;
         _thumbTexture = thumbTexture;
         _trackChunkLength = _trackTexture.Width - (2 * _trackTexture.Height);
 
-        _min = min;
-        _max = max;
-        _initial = initial;
-        _range = _max - _min;
-        Value = _initial;
+        Min = min;
+        Max = max;
+        _value = Min;
     }
 
     public void AddSetter(Action<float> setter)
     {
         _setters.Add(setter);
-    }
-
-    public void Reset()
-    {
-        Value = _initial;
-        foreach (var setter in _setters)
-        {
-            setter(Value);
-        }
     }
 
     public void OnLatch()
@@ -76,18 +76,14 @@ public abstract class Slider : Widget, IClickDraggable
     public virtual void SetValueFromPosition(float distanceFromStart)
     {
         var portion = distanceFromStart / _sliderTravelDistance;
-        Value = MathHelper.Clamp(_min + _range * portion, _min, _max);
-        foreach (var setter in _setters)
-        {
-            setter(Value);
-        }
+        Value = MathHelper.Clamp(Min + Range * portion, Min, Max);
     }
 
     public void OnRelease()
     {
     }
 
-    protected float GetPositionFromValue() => (Value - _min) / _range * _sliderTravelDistance;
+    protected float GetPositionFromValue() => (Value - Min) / Range * _sliderTravelDistance;
 
     protected void NewTrackLength(int trackLength)
     {

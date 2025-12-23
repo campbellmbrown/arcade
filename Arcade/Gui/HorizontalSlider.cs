@@ -4,8 +4,8 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace Arcade.Gui;
 
-public class HorizontalSlider(Texture2D thumbTexture, Texture2D trackTexture, float min, float max, float initial = 0)
-    : Slider(thumbTexture, trackTexture, min, max, initial)
+public class HorizontalSlider(Texture2D thumbTexture, Texture2D trackTexture, float min, float max)
+    : Slider(thumbTexture, trackTexture, min, max)
 {
     const int DEFAULT_WIDTH = 50;
 

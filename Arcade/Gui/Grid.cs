@@ -73,27 +73,28 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
 
     public override void Draw(IRenderer renderer)
     {
-        // TODO: Remove debug drawing
-        var totalWidth = _columnSizes.Sum();
-        var totalHeight = _rowSizes.Sum();
-        int width = 0;
-        for (int column = 0; column <= Columns.Count; column++)
-        {
-            renderer.SpriteBatch.DrawLine(Position + new Vector2(width, 0), Position + new Vector2(width, totalHeight), Color.Green * 0.25f, 4);
-            if (column < Columns.Count)
-            {
-                width += _columnSizes[column];
-            }
-        }
-        int height = 0;
-        for (int row = 0; row <= Rows.Count; row++)
-        {
-            renderer.SpriteBatch.DrawLine(Position + new Vector2(0, height), Position + new Vector2(totalWidth, height), Color.Green * 0.25f, 4);
-            if (row < Rows.Count)
-            {
-                height += _rowSizes[row];
-            }
-        }
+        // Uncomment for debugging layout
+        // var totalWidth = _columnSizes.Sum();
+        // var totalHeight = _rowSizes.Sum();
+        // int width = 0;
+        // for (int column = 0; column <= Columns.Count; column++)
+        // {
+        //     renderer.SpriteBatch.DrawLine(Position + new Vector2(width, 0), Position + new Vector2(width, totalHeight), Color.Green * 0.25f, 4);
+        //     if (column < Columns.Count)
+        //     {
+        //         width += _columnSizes[column];
+        //     }
+        // }
+        // int height = 0;
+        // for (int row = 0; row <= Rows.Count; row++)
+        // {
+        //     renderer.SpriteBatch.DrawLine(Position + new Vector2(0, height), Position + new Vector2(totalWidth, height), Color.Green * 0.25f, 4);
+        //     if (row < Rows.Count)
+        //     {
+        //         height += _rowSizes[row];
+        //     }
+        // }
+
         foreach (var widget in _widgets.Values)
         {
             widget.Draw(renderer);
