@@ -30,6 +30,8 @@ public class Slider : Widget, IClickDraggable
 
     readonly List<Action<float>> _setters = [];
 
+    public int? FixedWidth { get; set; } = null;
+
     public Slider(Texture2D thumbTexture, Texture2D trackTexture, float min, float max, float initial = 0)
     {
         if (thumbTexture.Height < trackTexture.Height)
@@ -144,7 +146,7 @@ public class Slider : Widget, IClickDraggable
         );
     }
 
-    protected override int IntrinsicWidth() => DEFAULT_WIDTH;
+    protected override int IntrinsicWidth() => FixedWidth ?? DEFAULT_WIDTH;
 
     protected override int IntrinsicHeight() => _thumbTexture.Height;
 }

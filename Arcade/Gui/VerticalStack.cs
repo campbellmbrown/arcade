@@ -4,7 +4,7 @@ namespace Arcade.Gui;
 
 public class VerticalStack : Stack
 {
-    public int? FixedWidth { get; init; }
+    public int? FixedWidth { get; set; } = null;
 
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
