@@ -4,5 +4,5 @@ namespace Arcade.Core;
 
 public interface IGameState : IVisual, IFrameTickable
 {
-    void Enter();
+    void Enter(object? payload = null);
 }

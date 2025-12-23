@@ -1,26 +1,29 @@
 namespace Arcade.Core;
 
+public readonly record struct StateTransition<TStateId>(TStateId StateId, object? Parameter = null) where TStateId : struct, Enum;
+
 /// <summary>
 /// Generic class for managing state transitions.
 /// </summary>
 /// <typeparam name="TStateId">The type of the state identifier.</typeparam>
 public class StateSwitch<TStateId> where TStateId : struct, Enum
 {
-    readonly Queue<TStateId> _requestedStateIds = new();
+    StateTransition<TStateId>? _requested;
 
-    public void RequestNewState(TStateId newStateId)
+    /// <summary>
+    /// Requests a transition to a new state.
+    /// </summary>
+    /// <param name="newStateId">The identifier of the new state.</param>
+    /// <param name="parameter">An optional parameter for the new state.</param>
+    public void RequestNewState(TStateId newStateId, object? parameter = null)
     {
-        _requestedStateIds.Enqueue(newStateId);
+        _requested = new StateTransition<TStateId>(newStateId, parameter);
     }
 
-    public TStateId? GetRequestedState()
+    public StateTransition<TStateId>? GetRequestedState()
     {
-        if (_requestedStateIds.Count > 0)
-        {
-            var stateId = _requestedStateIds.Dequeue();
-            _requestedStateIds.Clear();
-            return stateId;
-        }
-        return null;
+        var r = _requested;
+        _requested = null;
+        return r;
     }
 }

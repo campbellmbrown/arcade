@@ -47,8 +47,8 @@ public class GameStateService<TStateId>(
         var requestedState = _stateSwitch.GetRequestedState();
         if (requestedState.HasValue)
         {
-            _stateId = requestedState.Value;
-            _states[_stateId].Enter();
+            _stateId = requestedState.Value.StateId;
+            _states[_stateId].Enter(requestedState.Value.Parameter);
         }
     }
 
