@@ -47,6 +47,18 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
     public List<GridSize> Rows { get; } = rows;
     public List<GridSize> Columns { get; } = columns;
 
+    public int VerticalSpacing { get; set; } = 0;
+    public int HorizontalSpacing { get; set; } = 0;
+
+    public int Spacing
+    {
+        set
+        {
+            VerticalSpacing = value;
+            HorizontalSpacing = value;
+        }
+    }
+
     readonly List<int> _columnSizes = [.. Enumerable.Repeat(0, columns.Count)];
     readonly List<int> _rowSizes = [.. Enumerable.Repeat(0, rows.Count)];
 
@@ -95,16 +107,16 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
         //     }
         // }
 
+        base.Draw(renderer);
         foreach (var widget in _widgets.Values)
         {
             widget.Draw(renderer);
         }
-        base.Draw(renderer);
     }
 
     protected override int IntrinsicWidth()
     {
-        int total = 0;
+        int total = (Columns.Count - 1) * HorizontalSpacing;
         for (int column = 0; column < Columns.Count; column++)
         {
             if (Columns[column].Type == GridSizeType.Fixed)
@@ -121,7 +133,7 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
 
     protected override int IntrinsicHeight()
     {
-        int total = 0;
+        int total = (Rows.Count - 1) * VerticalSpacing;
         for (int row = 0; row < Rows.Count; row++)
         {
             if (Rows[row].Type == GridSizeType.Fixed)
@@ -162,9 +174,9 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
                 {
                     widget.Update(Position + new Vector2(x, y), _columnSizes[column], _rowSizes[row]);
                 }
-                x += _columnSizes[column];
+                x += _columnSizes[column] + HorizontalSpacing;
             }
-            y += _rowSizes[row];
+            y += _rowSizes[row] + VerticalSpacing;
         }
     }
 
@@ -196,7 +208,7 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
 
     void CalculateFinalColumnSizes(int availableWidth)
     {
-        int used = 0;
+        int used = (Columns.Count - 1) * HorizontalSpacing;
         int stretchCount = 0;
 
         for (int column = 0; column < Columns.Count; column++)
@@ -233,7 +245,7 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
 
     void CalculateFinalRowSizes(int availableHeight)
     {
-        int used = 0;
+        int used = (Rows.Count - 1) * VerticalSpacing;
         int stretchCount = 0;
 
         for (int row = 0; row < Rows.Count; row++)

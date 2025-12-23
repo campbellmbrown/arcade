@@ -55,6 +55,8 @@ public class PushButton : Widget, IClickable
 
     public override void Draw(IRenderer renderer)
     {
+        base.Draw(renderer);
+
         renderer.SpriteBatch.DrawRectangle(new RectangleF(Position.X, Position.Y, Width, Height), Color.White, 1, 0.5f);
         Rectangle topLeftRect = new(0, 0, TEXTURE_CORNER_PIXELS, TEXTURE_CORNER_PIXELS);
         Rectangle topRightRect = new(_texture.Width - TEXTURE_CORNER_PIXELS, 0, TEXTURE_CORNER_PIXELS, TEXTURE_CORNER_PIXELS);
@@ -152,7 +154,6 @@ public class PushButton : Widget, IClickable
         renderer.SpriteBatch.Draw(_texture, new Vector2(Position.X + TEXTURE_CORNER_PIXELS + _numHorizontalFullChunks * _chunkWidth, Position.Y + Height - TEXTURE_CORNER_PIXELS), remainingBottomRect, Color.White);
 
         _widget.Draw(renderer);
-        base.Draw(renderer);
     }
 
     protected override void ResolveWidth(int availableWidth)
