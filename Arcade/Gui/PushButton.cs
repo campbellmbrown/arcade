@@ -42,26 +42,15 @@ public class PushButton : Widget, IClickable
         }
     }
 
-    public override int GetContentWidth() => _widget.MeasureWidth();
-    public override int GetContentHeight() => _widget.MeasureHeight();
+
+    protected override int IntrinsicWidth() => _widget.MeasureWidth();
+
+    protected override int IntrinsicHeight() => _widget.MeasureHeight();
 
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
-        Width = GetContentWidth();
-        Height = GetContentHeight();
         base.Update(position, availableWidth, availableHeight);
         _widget.Update(Position, Width, Height);
-
-        int widthExcludingEnds = Width - 2 * TEXTURE_CORNER_PIXELS;
-        int heightExcludingEnds = Height - 2 * TEXTURE_CORNER_PIXELS;
-
-        _chunkWidth = _texture.Width - 2 * TEXTURE_CORNER_PIXELS;
-        _numHorizontalFullChunks = widthExcludingEnds / _chunkWidth;
-        _partialVerticalChunkWidth = widthExcludingEnds % _chunkWidth;
-
-        _chunkHeight = _texture.Height - 2 * TEXTURE_CORNER_PIXELS;
-        _numVerticalFullChunks = heightExcludingEnds / _chunkHeight;
-        _partialHorizontalChunkHeight = heightExcludingEnds % _chunkHeight;
     }
 
     public override void Draw(IRenderer renderer)
@@ -164,5 +153,25 @@ public class PushButton : Widget, IClickable
 
         _widget.Draw(renderer);
         base.Draw(renderer);
+    }
+
+    protected override void ResolveWidth(int availableWidth)
+    {
+        base.ResolveWidth(availableWidth);
+        // Hook into the width resolution to calculate chunk counts
+        int widthExcludingEnds = Width - 2 * TEXTURE_CORNER_PIXELS;
+        _chunkWidth = _texture.Width - 2 * TEXTURE_CORNER_PIXELS;
+        _numHorizontalFullChunks = widthExcludingEnds / _chunkWidth;
+        _partialVerticalChunkWidth = widthExcludingEnds % _chunkWidth;
+    }
+
+    protected override void ResolveHeight(int availableHeight)
+    {
+        base.ResolveHeight(availableHeight);
+        // Hook into the height resolution to calculate chunk counts
+        int heightExcludingEnds = Height - 2 * TEXTURE_CORNER_PIXELS;
+        _chunkHeight = _texture.Height - 2 * TEXTURE_CORNER_PIXELS;
+        _numVerticalFullChunks = heightExcludingEnds / _chunkHeight;
+        _partialHorizontalChunkHeight = heightExcludingEnds % _chunkHeight;
     }
 }

@@ -50,40 +50,6 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
     readonly List<int> _columnSizes = [.. Enumerable.Repeat(0, columns.Count)];
     readonly List<int> _rowSizes = [.. Enumerable.Repeat(0, rows.Count)];
 
-    public override int GetContentWidth()
-    {
-        int total = 0;
-        for (int column = 0; column < Columns.Count; column++)
-        {
-            if (Columns[column].Type == GridSizeType.Fixed)
-            {
-                total += (int)Columns[column].Value;
-            }
-            else if (Columns[column].Type == GridSizeType.Auto)
-            {
-                total += GetColumnMinWidth(column);
-            }
-        }
-        return total;
-    }
-
-    public override int GetContentHeight()
-    {
-        int total = 0;
-        for (int row = 0; row < Rows.Count; row++)
-        {
-            if (Rows[row].Type == GridSizeType.Fixed)
-            {
-                total += (int)Rows[row].Value;
-            }
-            else if (Rows[row].Type == GridSizeType.Auto)
-            {
-                total += GetRowMinHeight(row);
-            }
-        }
-        return total;
-    }
-
     public void AddWidget(IWidget widget, int row, int column)
     {
         if ((row < 0) || (row >= Rows.Count))
@@ -95,33 +61,6 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
             throw new ArgumentOutOfRangeException(nameof(column));
         }
         _widgets[(row, column)] = widget;
-    }
-
-    public override void Update(Vector2 position, int availableWidth, int availableHeight)
-    {
-        // If any of the columns are stretch, the grid takes all available width.
-        // TODO: move the setting of Width and Height to the base Widget class
-        Width = (Columns.Any(c => c.Type == GridSizeType.Stretch) ? availableWidth : MeasureWidth()) - MarginLeft - MarginRight;
-        Height = (Rows.Any(r => r.Type == GridSizeType.Stretch) ? availableHeight : MeasureHeight()) - MarginTop - MarginBottom;
-        base.Update(position, availableWidth, availableHeight);
-
-        CalculateFinalColumnSizes(Width);
-        CalculateFinalRowSizes(Height);
-
-        int y = 0;
-        for (int row = 0; row < Rows.Count; row++)
-        {
-            int x = 0;
-            for (int column = 0; column < Columns.Count; column++)
-            {
-                if (_widgets.TryGetValue((row, column), out var widget))
-                {
-                    widget.Update(Position + new Vector2(x, y), _columnSizes[column], _rowSizes[row]);
-                }
-                x += _columnSizes[column];
-            }
-            y += _rowSizes[row];
-        }
     }
 
     public override void FrameTick(IFrameTickService frameTickService)
@@ -160,6 +99,72 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
             widget.Draw(renderer);
         }
         base.Draw(renderer);
+    }
+
+    protected override int IntrinsicWidth()
+    {
+        int total = 0;
+        for (int column = 0; column < Columns.Count; column++)
+        {
+            if (Columns[column].Type == GridSizeType.Fixed)
+            {
+                total += (int)Columns[column].Value;
+            }
+            else if (Columns[column].Type == GridSizeType.Auto)
+            {
+                total += GetColumnMinWidth(column);
+            }
+        }
+        return total;
+    }
+
+    protected override int IntrinsicHeight()
+    {
+        int total = 0;
+        for (int row = 0; row < Rows.Count; row++)
+        {
+            if (Rows[row].Type == GridSizeType.Fixed)
+            {
+                total += (int)Rows[row].Value;
+            }
+            else if (Rows[row].Type == GridSizeType.Auto)
+            {
+                total += GetRowMinHeight(row);
+            }
+        }
+        return total;
+    }
+
+    protected override void ResolveWidth(int availableWidth)
+    {
+        Width = Columns.Any(c => c.Type == GridSizeType.Stretch) ? availableWidth - MarginLeft - MarginRight : IntrinsicWidth();
+        CalculateFinalColumnSizes(Width);
+    }
+
+    protected override void ResolveHeight(int availableHeight)
+    {
+        Height = Rows.Any(r => r.Type == GridSizeType.Stretch) ? availableHeight - MarginTop - MarginBottom : IntrinsicHeight();
+        CalculateFinalRowSizes(Height);
+    }
+
+    protected override void ResolvePosition(Vector2 position, int availableWidth, int availableHeight)
+    {
+        base.ResolvePosition(position, availableWidth, availableHeight);
+
+        int y = 0;
+        for (int row = 0; row < Rows.Count; row++)
+        {
+            int x = 0;
+            for (int column = 0; column < Columns.Count; column++)
+            {
+                if (_widgets.TryGetValue((row, column), out var widget))
+                {
+                    widget.Update(Position + new Vector2(x, y), _columnSizes[column], _rowSizes[row]);
+                }
+                x += _columnSizes[column];
+            }
+            y += _rowSizes[row];
+        }
     }
 
     int GetColumnMinWidth(int column)

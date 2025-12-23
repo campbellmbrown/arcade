@@ -80,9 +80,6 @@ public class Slider : Widget, IClickDraggable
         }
     }
 
-    public override int GetContentWidth() => _trackTexture.Height * 2 + _trackChunkLength;
-    public override int GetContentHeight() => _thumbTexture.Height;
-
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
         // TODO: fix slider
@@ -144,4 +141,7 @@ public class Slider : Widget, IClickDraggable
     public void OnRelease()
     {
     }
+
+    protected override int IntrinsicWidth() => _trackTexture.Height * 2 + _trackChunkLength;
+    protected override int IntrinsicHeight() => _thumbTexture.Height;
 }

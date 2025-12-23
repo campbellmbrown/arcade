@@ -17,13 +17,8 @@ public class Label : Widget
         _text.Text = text;
     }
 
-    public override int GetContentWidth() => (int)_text.Width;
-    public override int GetContentHeight() => (int)_text.Height;
-
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
-        Width = GetContentWidth();
-        Height = GetContentHeight();
         base.Update(position, availableWidth, availableHeight);
         _text.Position = Position;
     }
@@ -33,4 +28,7 @@ public class Label : Widget
         base.Draw(renderer);
         _text.Draw(renderer);
     }
+
+    protected override int IntrinsicWidth() => (int)_text.Width;
+    protected override int IntrinsicHeight() => (int)_text.Height;
 }

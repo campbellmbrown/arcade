@@ -9,28 +9,28 @@ namespace Arcade.Gui;
 public interface IWidget : IVisual, IFrameTickable
 {
     /// <summary>
-    /// The width of the widget in pixels, including alignment (e.g. stretch) but excluding margins.
+    /// The resolved width of the widget, including alignment.
     /// </summary>
     /// <value>The width in pixels.</value>
     int Width { get;}
 
     /// <summary>
-    /// The width of the widget including margins in pixels.
+    /// The resolved width of the widget, including alignment and margins.
     /// </summary>
-    /// <value>The outer width in pixels.</value>
-    int OuterWidth { get; }
+    /// <value>The occupied width in pixels.</value>
+    int OccupiedWidth { get; }
 
     /// <summary>
-    /// The height of the widget in pixels, including alignment (e.g. stretch) but excluding margins.
+    /// The resolved height of the widget, including alignment.
     /// </summary>
     /// <value>The height in pixels.</value>
     int Height { get; }
 
     /// <summary>
-    /// The width of the widget including margins in pixels.
+    /// The resolved height of the widget, including alignment and margins.
     /// </summary>
-    /// <value>The outer height in pixels.</value>
-    int OuterHeight { get; }
+    /// <value>The occupied height in pixels.</value>
+    int OccupiedHeight { get; }
 
     /// <summary>
     /// The position of the widget in the view.
@@ -87,18 +87,17 @@ public interface IWidget : IVisual, IFrameTickable
     public int MarginAll { set; }
 
     /// <summary>
-    /// Gets the content width of the widget, excluding any layout spacing (e.g. due to padding or alignment).
+    /// The measured intrinsic width of the widget including margins. Can be used for calculating layout, but should
+    /// not be used to identify the actual rendered width.
     /// </summary>
-    /// <returns>The content width in pixels.</returns>
-    int GetContentWidth();
+    /// <returns>The measured width in pixels.</returns>
+    int MeasureWidth();
 
     /// <summary>
-    /// Gets the content height of the widget, excluding any layout spacing (e.g. due to padding or alignment).
+    /// The measured intrinsic height of the widget including margins. Can be used for calculating layout, but should
+    /// not be used to identify the actual rendered height.
     /// </summary>
-    /// <returns>The content height in pixels.</returns>
-    int GetContentHeight();
-
-    int MeasureWidth();
+    /// <returns>The measured height in pixels.</returns>
     int MeasureHeight();
 
     /// <summary>
@@ -115,10 +114,10 @@ public abstract class Widget : IWidget
     protected Vector2 _offset; // Offset from the position due to alignment
 
     public int Width { get; protected set; }
-    public int OuterWidth => Width + MarginLeft + MarginRight;
+    public int OccupiedWidth => Width + MarginLeft + MarginRight;
 
     public int Height { get; protected set; }
-    public int OuterHeight => Height + MarginTop + MarginBottom;
+    public int OccupiedHeight => Height + MarginTop + MarginBottom;
 
     public Vector2 Position { get; protected set; } = Vector2.Zero;
     public int MarginTop { get; set; } = 0;
@@ -162,44 +161,15 @@ public abstract class Widget : IWidget
     public Alignment HorizontalAlignment => Alignment & (Alignment.Left | Alignment.Right | Alignment.HCenter | Alignment.HStretch);
     public Alignment VerticalAlignment => Alignment & (Alignment.Top | Alignment.Bottom | Alignment.VCenter | Alignment.VStretch);
 
-    public abstract int GetContentWidth();
+    public int MeasureWidth() => IntrinsicWidth() + MarginLeft + MarginRight;
 
-    public abstract int GetContentHeight();
-
-    public int MeasureWidth() => GetContentWidth() + MarginLeft + MarginRight;
-
-    public int MeasureHeight() => GetContentHeight() + MarginTop + MarginBottom;
+    public int MeasureHeight() => IntrinsicHeight() + MarginTop + MarginBottom;
 
     public virtual void Update(Vector2 position, int availableWidth, int availableHeight)
     {
-        if (Alignment.HasFlag(Alignment.HStretch))
-        {
-            Width = availableWidth - MarginLeft - MarginRight;
-        }
-        if (Alignment.HasFlag(Alignment.VStretch))
-        {
-            Height = availableHeight - MarginTop - MarginBottom;
-        }
-
-        float offsetX = HorizontalAlignment switch
-        {
-            Alignment.Left => MarginLeft,
-            Alignment.HCenter => MarginLeft + (availableWidth - OuterWidth) / 2f,
-            Alignment.Right => availableWidth - OuterWidth,
-            Alignment.HStretch => MarginLeft,
-            _ => throw new ArgumentException("Invalid horizontal alignment.")
-        };
-        float offsetY = VerticalAlignment switch
-        {
-            Alignment.Top => MarginTop,
-            Alignment.VCenter => MarginTop + (availableHeight - OuterHeight) / 2f,
-            Alignment.Bottom => availableHeight - OuterHeight,
-            Alignment.VStretch => MarginTop,
-            _ => throw new ArgumentException("Invalid vertical alignment.")
-        };
-        _offset = new Vector2(offsetX, offsetY);
-
-        Position = position + _offset;
+        ResolveWidth(availableWidth);
+        ResolveHeight(availableHeight);
+        ResolvePosition(position, availableWidth, availableHeight);
     }
 
     public virtual void FrameTick(IFrameTickService frameTickService)
@@ -209,9 +179,68 @@ public abstract class Widget : IWidget
 
     public virtual void Draw(IRenderer renderer)
     {
-        renderer.SpriteBatch.DrawRectangle(new RectangleF(Position.X - MarginLeft, Position.Y - MarginTop, OuterWidth, OuterHeight), Color.Red * 0.5f, 1);
+        renderer.SpriteBatch.DrawRectangle(new RectangleF(Position.X - MarginLeft, Position.Y - MarginTop, OccupiedWidth, OccupiedHeight), Color.Red * 0.5f, 1);
         renderer.SpriteBatch.DrawRectangle(new RectangleF(Position.X, Position.Y, Width, Height), Color.Blue * 0.5f, 1);
         renderer.SpriteBatch.DrawPoint(Position, Color.Yellow, 1);
+    }
+
+    /// <summary>
+    /// The intrinsic width of the widget before alignment and margins are applied.
+    /// </summary>
+    /// <remarks>
+    /// This function should only use <see cref="MeasureWidth"/> of child widgets to calculate its value.
+    /// </remarks>
+    /// <returns>The intrinsic width in pixels.</returns>
+    protected abstract int IntrinsicWidth();
+
+    /// <summary>
+    /// The intrinsic height of the widget before alignment and margins are applied.
+    /// </summary>
+    /// <remarks>
+    /// This function should only use <see cref="MeasureHeight"/> of child widgets to calculate its value.
+    /// </remarks>
+    /// <returns>The intrinsic height in pixels.</returns>
+    protected abstract int IntrinsicHeight();
+
+    /// <summary>
+    /// Resolves the width of the widget based on the available width and alignment.
+    /// </summary>
+    /// <param name="availableWidth">The available width in pixels.</param>
+    protected virtual void ResolveWidth(int availableWidth)
+    {
+        Width = Alignment.HasFlag(Alignment.HStretch) ? availableWidth - MarginLeft - MarginRight : IntrinsicWidth();
+    }
+
+    /// <summary>
+    /// Resolves the height of the widget based on the available height and alignment.
+    /// </summary>
+    /// <param name="availableHeight">The available height in pixels.</param>
+    protected virtual void ResolveHeight(int availableHeight)
+    {
+        Height = Alignment.HasFlag(Alignment.VStretch) ? availableHeight - MarginTop - MarginBottom : IntrinsicHeight();
+    }
+
+    protected virtual void ResolvePosition(Vector2 position, int availableWidth, int availableHeight)
+    {
+        float offsetX = HorizontalAlignment switch
+        {
+            Alignment.Left => MarginLeft,
+            Alignment.HCenter => MarginLeft + (availableWidth - OccupiedWidth) / 2f,
+            Alignment.Right => availableWidth - OccupiedWidth,
+            Alignment.HStretch => MarginLeft,
+            _ => throw new ArgumentException("Invalid horizontal alignment.")
+        };
+        float offsetY = VerticalAlignment switch
+        {
+            Alignment.Top => MarginTop,
+            Alignment.VCenter => MarginTop + (availableHeight - OccupiedHeight) / 2f,
+            Alignment.Bottom => availableHeight - OccupiedHeight,
+            Alignment.VStretch => MarginTop,
+            _ => throw new ArgumentException("Invalid vertical alignment.")
+        };
+        _offset = new Vector2(offsetX, offsetY);
+
+        Position = position + _offset;
     }
 
     static void CheckMutuallyExclusive(Alignment value, params Alignment[] flags)
