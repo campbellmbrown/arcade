@@ -19,6 +19,12 @@ public interface IClickable
     void OnClick();
 }
 
+public interface IScrollable
+{
+    RectangleF ScrollArea { get; }
+    void OnScroll(int delta);
+}
+
 public interface IInputService<TControl> : IFrameTickable where TControl : Enum
 {
     void RegisterControl(TControl control, Keys key);
@@ -26,6 +32,7 @@ public interface IInputService<TControl> : IFrameTickable where TControl : Enum
     void RegisterSingleShotKey(TControl control, Action action);
     void RegisterLeftClickDraggable(IClickDraggable clickDraggable);
     void RegisterLeftClickSingleShot(IClickable clickable);
+    void RegisterScrollable(IScrollable scrollable);
     void RegisterPan(Action<Vector2>? onPanStart, Action<Vector2>? onPan, Action<Vector2>? onPanEnd);
 }
 
@@ -46,6 +53,7 @@ public class InputService<TControl>(ILayerView layerView) : IInputService<TContr
     readonly List<SingleShotInput> _singleShotInputs = [];
     readonly List<IClickDraggable> _clickDraggables = [];
     readonly List<IClickable> _clickables = [];
+    readonly List<IScrollable> _scrollables = [];
 
     Action<Vector2>? _onPanStart;
     Action<Vector2>? _onPan;
@@ -86,6 +94,11 @@ public class InputService<TControl>(ILayerView layerView) : IInputService<TContr
     public void RegisterLeftClickSingleShot(IClickable clickable)
     {
         _clickables.Add(clickable);
+    }
+
+    public void RegisterScrollable(IScrollable scrollable)
+    {
+        _scrollables.Add(scrollable);
     }
 
     public void RegisterPan(Action<Vector2>? onPanStart, Action<Vector2>? onPan, Action<Vector2>? onPanEnd)
@@ -250,14 +263,26 @@ public class InputService<TControl>(ILayerView layerView) : IInputService<TContr
     void HandleMouseWheel(int currentScroll)
     {
         int delta = currentScroll - _previousScrollValue;
+        _previousScrollValue = currentScroll;
+
+        foreach (var scrollable in _scrollables)
+        {
+            if (scrollable.ScrollArea.Contains(layerView.MousePosition))
+            {
+                scrollable.OnScroll(delta);
+                return;
+            }
+        }
+
         if (delta > 0)
         {
+            // TODO: register these as non-area-specific scrollables that default
+            // when nothing else is scrolled over.
             layerView.ZoomAtMouse(ZOOM_FACTOR);
         }
         else if (delta < 0)
         {
             layerView.ZoomAtMouse(INVERSE_ZOOM_FACTOR);
         }
-        _previousScrollValue = currentScroll;
     }
 }
