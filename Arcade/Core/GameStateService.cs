@@ -8,8 +8,9 @@ public class GameStateService<TStateId>(
 ) : IVisual, IFrameTickable
     where TStateId : struct, Enum
 {
-    readonly StateSwitch<TStateId> _stateSwitch = new();
     readonly Dictionary<TStateId, IGameState> _states = [];
+
+    public StateSwitch<TStateId> StateSwitch { get; } = new();
 
     TStateId _stateId = defaultStateId;
     bool _isSetupComplete = false;
@@ -44,7 +45,7 @@ public class GameStateService<TStateId>(
 
         _states[_stateId].FrameTick(frameTickService);
 
-        var requestedState = _stateSwitch.GetRequestedState();
+        var requestedState = StateSwitch.GetRequestedState();
         if (requestedState.HasValue)
         {
             _stateId = requestedState.Value.StateId;
