@@ -64,7 +64,7 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
                 total += GetColumnMinWidth(column);
             }
         }
-        return total + MarginLeft + MarginRight;
+        return total;
     }
 
     public override int GetContentHeight()
@@ -81,7 +81,7 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
                 total += GetRowMinHeight(row);
             }
         }
-        return total + MarginTop + MarginBottom;
+        return total;
     }
 
     public void AddWidget(IWidget widget, int row, int column)
@@ -100,8 +100,9 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
         // If any of the columns are stretch, the grid takes all available width.
-        Width = (Columns.Any(c => c.Type == GridSizeType.Stretch) ? availableWidth : GetContentWidth()) - MarginLeft - MarginRight;
-        Height = (Rows.Any(r => r.Type == GridSizeType.Stretch) ? availableHeight : GetContentHeight()) - MarginTop - MarginBottom;
+        // TODO: move the setting of Width and Height to the base Widget class
+        Width = (Columns.Any(c => c.Type == GridSizeType.Stretch) ? availableWidth : MeasureWidth()) - MarginLeft - MarginRight;
+        Height = (Rows.Any(r => r.Type == GridSizeType.Stretch) ? availableHeight : MeasureHeight()) - MarginTop - MarginBottom;
         base.Update(position, availableWidth, availableHeight);
 
         CalculateFinalColumnSizes(Width);
@@ -168,7 +169,7 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
         {
             if (_widgets.TryGetValue((row, column), out var widget))
             {
-                maxColumnWidth = Math.Max(maxColumnWidth, widget.GetContentWidth());
+                maxColumnWidth = Math.Max(maxColumnWidth, widget.MeasureWidth());
             }
         }
         return maxColumnWidth;
@@ -181,7 +182,7 @@ public class Grid(List<GridSize> rows, List<GridSize> columns) : Widget
         {
             if (_widgets.TryGetValue((row, column), out var widget))
             {
-                maxRowHeight = Math.Max(maxRowHeight, widget.GetContentHeight());
+                maxRowHeight = Math.Max(maxRowHeight, widget.MeasureHeight());
             }
         }
         return maxRowHeight;

@@ -85,6 +85,7 @@ public class Slider : Widget, IClickDraggable
 
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
+        // TODO: fix slider
         base.Update(position, availableWidth, availableHeight);
         _thumbStopLeftX = Position.X + _thumbTexture.Width / 2f;
         _trackY = Position.Y + (_thumbTexture.Height / 2f);

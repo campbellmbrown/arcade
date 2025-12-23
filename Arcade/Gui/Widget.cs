@@ -98,6 +98,9 @@ public interface IWidget : IVisual, IFrameTickable
     /// <returns>The content height in pixels.</returns>
     int GetContentHeight();
 
+    int MeasureWidth();
+    int MeasureHeight();
+
     /// <summary>
     /// Updates the widget's position and size based on the given available space.
     /// </summary>
@@ -162,6 +165,10 @@ public abstract class Widget : IWidget
     public abstract int GetContentWidth();
 
     public abstract int GetContentHeight();
+
+    public int MeasureWidth() => GetContentWidth() + MarginLeft + MarginRight;
+
+    public int MeasureHeight() => GetContentHeight() + MarginTop + MarginBottom;
 
     public virtual void Update(Vector2 position, int availableWidth, int availableHeight)
     {

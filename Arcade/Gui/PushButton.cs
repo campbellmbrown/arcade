@@ -42,13 +42,13 @@ public class PushButton : Widget, IClickable
         }
     }
 
-    public override int GetContentWidth() => _widget.GetContentWidth() + MarginLeft + MarginRight;
-    public override int GetContentHeight() => _widget.GetContentHeight() + MarginTop + MarginBottom;
+    public override int GetContentWidth() => _widget.MeasureWidth();
+    public override int GetContentHeight() => _widget.MeasureHeight();
 
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
-        Width = GetContentWidth() - MarginLeft - MarginRight;
-        Height = GetContentHeight() - MarginTop - MarginBottom;
+        Width = GetContentWidth();
+        Height = GetContentHeight();
         base.Update(position, availableWidth, availableHeight);
         _widget.Update(Position, Width, Height);
 

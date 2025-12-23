@@ -17,13 +17,13 @@ public class Label : Widget
         _text.Text = text;
     }
 
-    public override int GetContentWidth() => (int)_text.Width + MarginLeft + MarginRight;
-    public override int GetContentHeight() => (int)_text.Height + MarginTop + MarginBottom;
+    public override int GetContentWidth() => (int)_text.Width;
+    public override int GetContentHeight() => (int)_text.Height;
 
     public override void Update(Vector2 position, int availableWidth, int availableHeight)
     {
-        Width = GetContentWidth() - MarginLeft - MarginRight;
-        Height = GetContentHeight() - MarginTop - MarginBottom;
+        Width = GetContentWidth();
+        Height = GetContentHeight();
         base.Update(position, availableWidth, availableHeight);
         _text.Position = Position;
     }
