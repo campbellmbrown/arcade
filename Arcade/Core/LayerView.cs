@@ -28,6 +28,10 @@ public interface ILayerView
 
     void Focus(Vector2 focusPoint);
 
+    /// <summary>
+    /// Shifts the focus of the layer view by the given delta.
+    /// </summary>
+    /// <param name="delta">The delta to shift the focus by.</param>
     void ShiftFocus(Vector2 delta);
 
     void ZoomAtMouse(float zoomFactor);
@@ -75,7 +79,7 @@ public class LayerView : ILayerView
 
     public void Focus(Vector2 focusPoint) => Camera.LookAt(focusPoint);
 
-    public void ShiftFocus(Vector2 delta) => Focus(Center - delta);
+    public void ShiftFocus(Vector2 delta) => Focus(Center + delta);
 
     public void ZoomAtMouse(float zoomFactor)
     {
