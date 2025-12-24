@@ -25,6 +25,100 @@ public interface IScrollable
     void OnScroll(int delta);
 }
 
+public interface IInputContext
+{
+    void RegisterPan(Action<Vector2>? onPanStart, Action<Vector2>? onPan, Action<Vector2>? onPanEnd);
+    void RegisterScrollable(IScrollable scrollable);
+
+    void HandlePanStart();
+    void HandlePan();
+    void HandlePanEnd();
+
+    /// <summary>
+    /// Handles a scroll event. Consumes the event if handled so it can't be propagated further.
+    /// </summary>
+    /// <param name="delta">The scroll delta.</param>
+    /// <returns>True if the scroll event was handled, false otherwise.</returns>
+    bool HandleScroll(int delta);
+}
+
+public class InputContext(ILayerView layerView) : IInputContext
+{
+    Action<Vector2>? _onPanStart;
+    Action<Vector2>? _onPan;
+    Action<Vector2>? _onPanEnd;
+    bool _panRegistered = false;
+
+    readonly List<IScrollable> _scrollables = [];
+
+    Vector2 _panPosition = Vector2.Zero;
+
+    public void RegisterPan(Action<Vector2>? onPanStart, Action<Vector2>? onPan, Action<Vector2>? onPanEnd)
+    {
+        if ((onPanStart == null) && (onPan == null) && (onPanEnd == null))
+        {
+            throw new ArgumentException("All pan callbacks cannot be null.");
+        }
+        if ((_onPanStart != null) || (_onPan != null) || (_onPanEnd != null))
+        {
+            throw new InvalidOperationException("Pan callbacks have already been registered.");
+        }
+        _onPanStart = onPanStart;
+        _onPan = onPan;
+        _onPanEnd = onPanEnd;
+        _panRegistered = true;
+    }
+
+    public void RegisterScrollable(IScrollable scrollable)
+    {
+        _scrollables.Add(scrollable);
+    }
+
+
+    public void HandlePanStart()
+    {
+        if (!_panRegistered)
+        {
+            return;
+        }
+        _panPosition = layerView.MousePosition;
+        _onPanStart?.Invoke(_panPosition);
+    }
+
+    public void HandlePan()
+    {
+        if (!_panRegistered)
+        {
+            return;
+        }
+        var delta = layerView.MousePosition - _panPosition;
+        _onPan?.Invoke(delta);
+    }
+
+    public void HandlePanEnd()
+    {
+        if (!_panRegistered)
+        {
+            return;
+        }
+        var delta = layerView.MousePosition - _panPosition;
+        _onPanEnd?.Invoke(delta);
+    }
+
+    public bool HandleScroll(int delta)
+    {
+        foreach (var scrollable in _scrollables)
+        {
+            if (scrollable.ScrollArea.Contains(layerView.MousePosition))
+            {
+                scrollable.OnScroll(delta);
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
 public interface IInputService<TControl> : IFrameTickable where TControl : Enum
 {
     void RegisterControl(TControl control, Keys key);
@@ -32,15 +126,20 @@ public interface IInputService<TControl> : IFrameTickable where TControl : Enum
     void RegisterSingleShotKey(TControl control, Action action);
     void RegisterLeftClickDraggable(IClickDraggable clickDraggable);
     void RegisterLeftClickSingleShot(IClickable clickable);
-    void RegisterScrollable(IScrollable scrollable);
-    void RegisterPan(Action<Vector2>? onPanStart, Action<Vector2>? onPan, Action<Vector2>? onPanEnd);
+
+    /// <summary>
+    /// Registers a default scrollable that is invoked when none of the contexts handle the scroll (i.e. when no
+    /// registered scrollable contains the mouse position).
+    /// </summary>
+    /// <param name="onScroll">The action to invoke on scroll.</param>
+    void RegisterDefaultScrollable(Action<int> onScroll);
+
+    IInputContext Gui { get; }
+    IInputContext World { get; }
 }
 
-public class InputService<TControl>(ILayerView layerView) : IInputService<TControl> where TControl : Enum
+public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLayerView) : IInputService<TControl> where TControl : Enum
 {
-    const float ZOOM_FACTOR = 1.2f;
-    const float INVERSE_ZOOM_FACTOR = 1 / ZOOM_FACTOR;
-
     record HeldInput(TControl Control, Keys Key, Action Action);
 
     record SingleShotInput(TControl Control, Keys Key, Action Action)
@@ -53,13 +152,13 @@ public class InputService<TControl>(ILayerView layerView) : IInputService<TContr
     readonly List<SingleShotInput> _singleShotInputs = [];
     readonly List<IClickDraggable> _clickDraggables = [];
     readonly List<IClickable> _clickables = [];
-    readonly List<IScrollable> _scrollables = [];
 
-    Action<Vector2>? _onPanStart;
-    Action<Vector2>? _onPan;
-    Action<Vector2>? _onPanEnd;
+    Action<int>? _defaultScrollable;
 
     int _previousScrollValue = 0;
+
+    public IInputContext Gui { get; } = new InputContext(guiLayerView);
+    public IInputContext World { get; } = new InputContext(worldLayerView);
 
     public void RegisterControl(TControl control, Keys key)
     {
@@ -96,41 +195,13 @@ public class InputService<TControl>(ILayerView layerView) : IInputService<TContr
         _clickables.Add(clickable);
     }
 
-    public void RegisterScrollable(IScrollable scrollable)
+    public void RegisterDefaultScrollable(Action<int> onScroll)
     {
-        _scrollables.Add(scrollable);
-    }
-
-    public void RegisterPan(Action<Vector2>? onPanStart, Action<Vector2>? onPan, Action<Vector2>? onPanEnd)
-    {
-        if ((onPanStart == null) && (onPan == null) && (onPanEnd == null))
+        if (_defaultScrollable != null)
         {
-            throw new ArgumentException("All pan callbacks cannot be null.");
+            throw new InvalidOperationException("Default scrollable has already been registered.");
         }
-        if (onPanStart != null)
-        {
-            if (_onPanStart != null)
-            {
-                throw new InvalidOperationException("Pan start callback has already been registered.");
-            }
-            _onPanStart = onPanStart;
-        }
-        if (onPan != null)
-        {
-            if (_onPan != null)
-            {
-                throw new InvalidOperationException("Pan callback has already been registered.");
-            }
-            _onPan = onPan;
-        }
-        if (onPanEnd != null)
-        {
-            if (_onPanEnd != null)
-            {
-                throw new InvalidOperationException("Pan end callback has already been registered.");
-            }
-            _onPanEnd = onPanEnd;
-        }
+        _defaultScrollable = onScroll;
     }
 
     public void FrameTick(IFrameTickService frameTickService)
@@ -179,7 +250,7 @@ public class InputService<TControl>(ILayerView layerView) : IInputService<TContr
             {
                 foreach (var leftClick in _clickables)
                 {
-                    if (leftClick.ClickArea.Contains(layerView.MousePosition))
+                    if (leftClick.ClickArea.Contains(guiLayerView.MousePosition))
                     {
                         _pressedClickable = leftClick;
                         break;
@@ -190,7 +261,7 @@ public class InputService<TControl>(ILayerView layerView) : IInputService<TContr
                 // Clicked for the first time. Check if we clicked something.
                 foreach (var leftClickDraggable in _clickDraggables)
                 {
-                    if (leftClickDraggable.ClickArea.Contains(layerView.MousePosition))
+                    if (leftClickDraggable.ClickArea.Contains(guiLayerView.MousePosition))
                     {
                         // We clicked a draggable.
                         leftClickDraggable.OnLatch();
@@ -204,14 +275,14 @@ public class InputService<TControl>(ILayerView layerView) : IInputService<TContr
             }
 
             // If we are latched onto a draggable, drag it.
-            _latchedClickDraggable?.OnDrag(layerView.MousePosition);
+            _latchedClickDraggable?.OnDrag(guiLayerView.MousePosition);
         }
         else
         {
             // Check for release
             if (_previousLeftButtonState == ButtonState.Pressed)
             {
-                if ((_pressedClickable != null) && _pressedClickable.ClickArea.Contains(layerView.MousePosition))
+                if ((_pressedClickable != null) && _pressedClickable.ClickArea.Contains(guiLayerView.MousePosition))
                 {
                     // We clicked something and released the mouse button.
                     _pressedClickable.OnClick();
@@ -231,7 +302,6 @@ public class InputService<TControl>(ILayerView layerView) : IInputService<TContr
     }
 
     ButtonState _previousMiddleButtonState = ButtonState.Released;
-    Vector2 _panPosition = Vector2.Zero;
 
     void HandleMiddleClick(ButtonState middleButtonState)
     {
@@ -239,22 +309,19 @@ public class InputService<TControl>(ILayerView layerView) : IInputService<TContr
         {
             if (_previousMiddleButtonState == ButtonState.Released)
             {
-                _panPosition = layerView.MousePosition;
-                _onPanStart?.Invoke(_panPosition);
+                Gui.HandlePanStart();
+                World.HandlePanStart();
             }
-            var panDelta = _panPosition - layerView.MousePosition;
-            if (panDelta != Vector2.Zero)
+            else
             {
-                _onPan?.Invoke(panDelta);
+                Gui.HandlePan();
+                World.HandlePan();
             }
         }
-        else
+        else if (_previousMiddleButtonState == ButtonState.Pressed)
         {
-            if (_previousMiddleButtonState == ButtonState.Pressed)
-            {
-                var panDelta = _panPosition - layerView.MousePosition;
-                _onPanEnd?.Invoke(panDelta);
-            }
+            Gui.HandlePanEnd();
+            World.HandlePanEnd();
         }
 
         _previousMiddleButtonState = middleButtonState;
@@ -263,26 +330,21 @@ public class InputService<TControl>(ILayerView layerView) : IInputService<TContr
     void HandleMouseWheel(int currentScroll)
     {
         int delta = currentScroll - _previousScrollValue;
+        if (delta == 0)
+        {
+            return;
+        }
         _previousScrollValue = currentScroll;
 
-        foreach (var scrollable in _scrollables)
+        if (Gui.HandleScroll(delta))
         {
-            if (scrollable.ScrollArea.Contains(layerView.MousePosition))
-            {
-                scrollable.OnScroll(delta);
-                return;
-            }
+            return;
+        }
+        if (World.HandleScroll(delta))
+        {
+            return;
         }
 
-        if (delta > 0)
-        {
-            // TODO: register these as non-area-specific scrollables that default
-            // when nothing else is scrolled over.
-            layerView.ZoomAtMouse(ZOOM_FACTOR);
-        }
-        else if (delta < 0)
-        {
-            layerView.ZoomAtMouse(INVERSE_ZOOM_FACTOR);
-        }
+        _defaultScrollable?.Invoke(delta);
     }
 }
