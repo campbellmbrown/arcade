@@ -19,7 +19,13 @@ public interface IClickable
     void OnClick();
 }
 
-public interface IInputService<TControl> : IFrameTickable where TControl : Enum
+public interface IInputServiceGeneric
+{
+    void TearDown();
+}
+
+// TODO: move more interfaces to `IInputServiceGeneric` if needed.
+public interface IInputService<TControl> : IInputServiceGeneric, IFrameTickable where TControl : Enum
 {
     void RegisterControl(TControl control, Keys key);
     void RegisterHeldKey(TControl control, Action action);
@@ -102,6 +108,17 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
             throw new InvalidOperationException("Default scrollable has already been registered.");
         }
         _defaultScrollable = onScroll;
+    }
+
+    public void TearDown()
+    {
+        _heldKeys.Clear();
+        _singleShotInputs.Clear();
+        _clickDraggables.Clear();
+        _clickables.Clear();
+        _defaultScrollable = null;
+        Gui.TearDown();
+        World.TearDown();
     }
 
     public void FrameTick(IFrameTickService frameTickService)

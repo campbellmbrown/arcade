@@ -13,10 +13,7 @@ public abstract class GameState<TStateId> : IGameState<TStateId> where TStateId 
 {
     public StateSwitch<TStateId>? StateSwitch { get; set; }
 
-    public virtual void Enter(object? payload = null)
-    {
-        // Do nothing by default
-    }
+    public abstract void Enter(object? payload = null);
 
     public abstract void FrameTick(IFrameTickService frameTickService);
     public abstract void Draw(IRenderer renderer);

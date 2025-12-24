@@ -1,8 +1,10 @@
+using Arcade.Input;
 using Arcade.Visual;
 
 namespace Arcade.Core;
 
 public class GameStateService<TStateId>(
+    IInputServiceGeneric _input,
     ISpriteBatchService spriteBatchService,
     TStateId defaultStateId
 ) : IVisual, IFrameTickable
@@ -31,17 +33,18 @@ public class GameStateService<TStateId>(
         {
             if (!_states.ContainsKey(value))
             {
-                throw new Exception($"State {value} is not registered");
+                throw new InvalidOperationException($"State {value} has not been registered.");
             }
         }
         _isSetupComplete = true;
+        _states[_stateId].Enter();
     }
 
     public void FrameTick(IFrameTickService frameTickService)
     {
         if (!_isSetupComplete)
         {
-            throw new Exception("Setup is not complete");
+            throw new InvalidOperationException("Setup is not complete");
         }
 
         _states[_stateId].FrameTick(frameTickService);
@@ -49,6 +52,7 @@ public class GameStateService<TStateId>(
         var requestedState = _stateSwitch.GetRequestedState();
         if (requestedState.HasValue)
         {
+            _input.TearDown();
             _stateId = requestedState.Value.StateId;
             _states[_stateId].Enter(requestedState.Value.Parameter);
         }
@@ -58,7 +62,7 @@ public class GameStateService<TStateId>(
     {
         if (!_isSetupComplete)
         {
-            throw new Exception("Setup is not complete");
+            throw new InvalidOperationException("Setup is not complete");
         }
 
         spriteBatchService.Start(DrawType.Gui);

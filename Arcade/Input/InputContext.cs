@@ -36,6 +36,8 @@ public interface IInputContext
     /// <param name="scrollable">The scrollable to register.</param>
     void RegisterScrollable(IScrollable scrollable);
 
+    void TearDown();
+
     void HandlePanStart();
     void HandlePan();
     void HandlePanEnd();
@@ -80,6 +82,14 @@ public class InputContext(ILayerView layerView) : IInputContext
         _scrollables.Add(scrollable);
     }
 
+    public void TearDown()
+    {
+        _onPanStart = null;
+        _onPan = null;
+        _onPanEnd = null;
+        _panRegistered = false;
+        _scrollables.Clear();
+    }
 
     public void HandlePanStart()
     {
