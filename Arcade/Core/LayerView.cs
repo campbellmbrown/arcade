@@ -34,6 +34,10 @@ public interface ILayerView
     /// <param name="delta">The delta to shift the focus by.</param>
     void ShiftFocus(Vector2 delta);
 
+    void Rotate90();
+
+    void RotateNeg90();
+
     void ZoomAtMouse(float zoomFactor);
 
     void WindowResized();
@@ -82,6 +86,10 @@ public class LayerView : ILayerView
     public void Focus(Vector2 focusPoint) => Camera.LookAt(focusPoint);
 
     public void ShiftFocus(Vector2 delta) => Focus(Center + delta);
+
+    public void Rotate90() => Camera.Rotate(MathF.PI / 2);
+
+    public void RotateNeg90() => Camera.Rotate(-MathF.PI / 2);
 
     public void ZoomAtMouse(float zoomFactor)
     {
