@@ -41,10 +41,12 @@ public interface ILayerView
 
 public class LayerView : ILayerView
 {
+    const int SCALE_FACTOR = 1;
+    const float MINIMUM_ZOOM = 0.5f;
+    const float MAXIMUM_ZOOM = 100f;
+
     readonly GraphicsDevice _graphicsDevice;
     readonly GameWindow _window;
-
-    const int SCALE_FACTOR = 1;
 
     public LayerView(GraphicsDevice graphicsDevice, GameWindow window, float zoom)
     {
@@ -55,8 +57,8 @@ public class LayerView : ILayerView
         // Each layer has a different camera because they can have different positions/zooms.
         Camera = new OrthographicCamera(graphicsDevice)
         {
-            MinimumZoom = 0.5f,
-            MaximumZoom = 100f,
+            MinimumZoom = MINIMUM_ZOOM,
+            MaximumZoom = MAXIMUM_ZOOM,
         };
 
         Camera.ZoomIn(Zoom - SCALE_FACTOR);
@@ -65,7 +67,7 @@ public class LayerView : ILayerView
     public OrthographicCamera Camera { get; private set; }
     public Vector2 Origin => Camera.ScreenToWorld(Vector2.Zero);
     public Vector2 Size => new Vector2(_window.ClientBounds.Width, _window.ClientBounds.Height) / Camera.Zoom;
-    public Vector2 Center => Origin + Size / 2;
+    public Vector2 Center => Camera.Center;
     public Vector2 MousePosition
     {
         get
@@ -98,7 +100,13 @@ public class LayerView : ILayerView
 
     public void WindowResized()
     {
-        Camera = new OrthographicCamera(_graphicsDevice);
+        var previousCenter = Camera.Center;
+        Camera = new OrthographicCamera(_graphicsDevice)
+        {
+            MinimumZoom = MINIMUM_ZOOM,
+            MaximumZoom = MAXIMUM_ZOOM,
+        };
         Camera.ZoomIn(Zoom - SCALE_FACTOR);
+        Camera.LookAt(previousCenter);
     }
 }
