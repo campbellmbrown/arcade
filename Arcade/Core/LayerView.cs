@@ -24,7 +24,7 @@ public interface ILayerView
 
     Vector2 MousePosition { get; }
 
-    float Zoom { get; }
+    float Zoom { get; set; }
 
     void Focus(Vector2 focusPoint);
 
@@ -38,6 +38,7 @@ public interface ILayerView
 
     void RotateNeg90();
 
+    void ResetZoom();
     void ZoomAtMouse(float zoomFactor);
 
     void WindowResized();
@@ -45,7 +46,6 @@ public interface ILayerView
 
 public class LayerView : ILayerView
 {
-    const int SCALE_FACTOR = 1;
     const float MINIMUM_ZOOM = 0.5f;
     const float MAXIMUM_ZOOM = 100f;
 
@@ -56,7 +56,6 @@ public class LayerView : ILayerView
     {
         _graphicsDevice = graphicsDevice;
         _window = window;
-        Zoom = zoom;
 
         // Each layer has a different camera because they can have different positions/zooms.
         Camera = new OrthographicCamera(graphicsDevice)
@@ -64,8 +63,7 @@ public class LayerView : ILayerView
             MinimumZoom = MINIMUM_ZOOM,
             MaximumZoom = MAXIMUM_ZOOM,
         };
-
-        Camera.ZoomIn(Zoom - SCALE_FACTOR);
+        Zoom = zoom;
     }
 
     public OrthographicCamera Camera { get; private set; }
@@ -81,15 +79,26 @@ public class LayerView : ILayerView
         }
     }
 
-    public float Zoom { get; private set; }
+    float _zoom;
+    public float Zoom
+    {
+        get => _zoom;
+        set
+        {
+            _zoom = MathHelper.Clamp(value, MINIMUM_ZOOM, MAXIMUM_ZOOM);
+            Camera.Zoom = _zoom;
+        }
+    }
 
     public void Focus(Vector2 focusPoint) => Camera.LookAt(focusPoint);
 
     public void ShiftFocus(Vector2 delta) => Focus(Center + delta);
 
-    public void Rotate90() => Camera.Rotate(MathF.PI / 2);
+    public void Rotate90() => Camera.Rotation = (Camera.Rotation + MathF.PI / 2) % (2 * MathF.PI);
 
-    public void RotateNeg90() => Camera.Rotate(-MathF.PI / 2);
+    public void RotateNeg90() => Camera.Rotation = (Camera.Rotation - MathF.PI / 2 + (2 * MathF.PI)) % (2 * MathF.PI);
+
+    public void ResetZoom() => Zoom = 1.0f;
 
     public void ZoomAtMouse(float zoomFactor)
     {
@@ -101,7 +110,7 @@ public class LayerView : ILayerView
 
         if (Camera.Zoom != prevZoom)
         {
-            Zoom = Camera.Zoom;
+            _zoom = Camera.Zoom;
             Camera.LookAt(Center + afterZoomOffset);
         }
     }
@@ -113,8 +122,8 @@ public class LayerView : ILayerView
         {
             MinimumZoom = MINIMUM_ZOOM,
             MaximumZoom = MAXIMUM_ZOOM,
+            Zoom = MathHelper.Clamp(_zoom, MINIMUM_ZOOM, MAXIMUM_ZOOM)
         };
-        Camera.ZoomIn(Zoom - SCALE_FACTOR);
         Camera.LookAt(previousCenter);
     }
 }
