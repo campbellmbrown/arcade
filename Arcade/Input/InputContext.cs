@@ -10,6 +10,12 @@ public interface IScrollable
     void OnScroll(int delta);
 }
 
+public interface IHoverable
+{
+    RectangleF HoverArea { get; }
+    bool IsHovering { get; set; }
+}
+
 /// <summary>
 /// Context for inputs that requires layer-specific handling. This context is bound to a specific layer view.
 /// </summary>
@@ -36,6 +42,12 @@ public interface IInputContext
     /// <param name="scrollable">The scrollable to register.</param>
     void RegisterScrollable(IScrollable scrollable);
 
+    /// <summary>
+    /// Registers a hoverable to this input context.
+    /// </summary>
+    /// <param name="hoverable">The hoverable to register.</param>
+    void RegisterHoverable(IHoverable hoverable);
+
     void TearDown();
 
     void HandlePanStart();
@@ -48,6 +60,12 @@ public interface IInputContext
     /// <param name="delta">The scroll delta.</param>
     /// <returns>True if the scroll event was handled, false otherwise.</returns>
     bool HandleScroll(int delta);
+
+    /// <summary>
+    /// Handles hover events. Consumes the event if handled so it can't be propagated further.
+    /// </summary>
+    /// <returns>True if a hover event was handled, false otherwise.</returns>
+    bool HandleHover();
 
     /// <summary>
     /// The default left click action for this input context.
@@ -68,8 +86,10 @@ public class InputContext(ILayerView layerView) : IInputContext
     bool _panRegistered = false;
 
     readonly List<IScrollable> _scrollables = [];
+    readonly List<IHoverable> _hoverables = [];
 
     Vector2 _panPosition = Vector2.Zero;
+    IHoverable? _currentlyHovering = null;
 
     public Action<Vector2>? DefaultLeftClick { get; set; }
 
@@ -94,6 +114,11 @@ public class InputContext(ILayerView layerView) : IInputContext
         _scrollables.Add(scrollable);
     }
 
+    public void RegisterHoverable(IHoverable hoverable)
+    {
+        _hoverables.Add(hoverable);
+    }
+
     public void TearDown()
     {
         _onPanStart = null;
@@ -101,6 +126,7 @@ public class InputContext(ILayerView layerView) : IInputContext
         _onPanEnd = null;
         _panRegistered = false;
         _scrollables.Clear();
+        _hoverables.Clear();
     }
 
     public void HandlePanStart()
@@ -135,14 +161,46 @@ public class InputContext(ILayerView layerView) : IInputContext
 
     public bool HandleScroll(int delta)
     {
+        var mousePosition = layerView.MousePosition;
         foreach (var scrollable in _scrollables)
         {
-            if (scrollable.ScrollArea.Contains(layerView.MousePosition))
+            if (scrollable.ScrollArea.Contains(mousePosition))
             {
                 scrollable.OnScroll(delta);
                 return true;
             }
         }
         return false;
+    }
+
+    public bool HandleHover()
+    {
+        var mousePosition = layerView.MousePosition;
+
+        IHoverable? nowHovering = null;
+
+        foreach (var hoverable in _hoverables)
+        {
+            if (hoverable.HoverArea.Contains(mousePosition))
+            {
+                nowHovering = hoverable;
+                break;
+            }
+        }
+
+        if (nowHovering != _currentlyHovering)
+        {
+            if (_currentlyHovering != null)
+            {
+                _currentlyHovering.IsHovering = false;
+            }
+            if (nowHovering != null)
+            {
+                nowHovering.IsHovering = true;
+            }
+            _currentlyHovering = nowHovering;
+        }
+
+        return nowHovering != null;
     }
 }

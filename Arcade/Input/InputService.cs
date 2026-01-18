@@ -72,6 +72,8 @@ public interface IInputService<TControl> : IInputServiceGeneric, IFrameTickable 
 
     IInputContext Gui { get; }
     IInputContext World { get; }
+
+    bool IsHoveringAnyContext { get; }
 }
 
 public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLayerView) : IInputService<TControl> where TControl : Enum
@@ -101,6 +103,8 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
 
     public IInputContext Gui { get; } = new InputContext(guiLayerView);
     public IInputContext World { get; } = new InputContext(worldLayerView);
+
+    public bool IsHoveringAnyContext { get; private set; } = false;
 
     public void RegisterControl(TControl control, Keys key, KeyModifiers modifiers = KeyModifiers.None)
     {
@@ -208,6 +212,7 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
         HandleLeftClick(mouseState.LeftButton);
         HandleMiddleClick(mouseState.MiddleButton);
         HandleMouseWheel(mouseState.ScrollWheelValue);
+        HandleHover();
     }
 
     void HandleLeftClick(ButtonState leftButtonState)
@@ -333,6 +338,15 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
         else
         {
             World.DefaultLeftClick?.Invoke(worldLayerView.MousePosition);
+        }
+    }
+
+    void HandleHover()
+    {
+        IsHoveringAnyContext = Gui.HandleHover();
+        if (!IsHoveringAnyContext)
+        {
+            IsHoveringAnyContext = World.HandleHover();
         }
     }
 
