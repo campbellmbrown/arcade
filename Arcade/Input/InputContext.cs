@@ -48,6 +48,16 @@ public interface IInputContext
     /// <param name="delta">The scroll delta.</param>
     /// <returns>True if the scroll event was handled, false otherwise.</returns>
     bool HandleScroll(int delta);
+
+    /// <summary>
+    /// The default left click action for this input context.
+    /// </summary>
+    /// <remarks>
+    /// This action is invoked when a left click occurs in the layer view and no other UI element consumes the click.
+    /// Note that if several input contexts have a default left click action registered, only the topmost context's
+    /// action will be invoked.
+    /// </remarks>
+    Action<Vector2>? DefaultLeftClick { get; set; }
 }
 
 public class InputContext(ILayerView layerView) : IInputContext
@@ -60,6 +70,8 @@ public class InputContext(ILayerView layerView) : IInputContext
     readonly List<IScrollable> _scrollables = [];
 
     Vector2 _panPosition = Vector2.Zero;
+
+    public Action<Vector2>? DefaultLeftClick { get; set; }
 
     public void RegisterPan(Action<Vector2>? onPanStart, Action<Vector2>? onPan, Action<Vector2>? onPanEnd)
     {

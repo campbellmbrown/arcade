@@ -93,6 +93,10 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
 
     Action<int>? _defaultScrollable;
 
+    IClickable? _pressedClickable;
+    IClickDraggable? _latchedClickDraggable;
+    ButtonState _previousLeftButtonState = ButtonState.Released;
+    ButtonState _previousMiddleButtonState = ButtonState.Released;
     int _previousScrollValue = 0;
 
     public IInputContext Gui { get; } = new InputContext(guiLayerView);
@@ -206,70 +210,73 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
         HandleMouseWheel(mouseState.ScrollWheelValue);
     }
 
-    IClickable? _pressedClickable;
-    IClickDraggable? _latchedClickDraggable;
-    ButtonState _previousLeftButtonState = ButtonState.Released;
-
     void HandleLeftClick(ButtonState leftButtonState)
     {
         if (leftButtonState == ButtonState.Pressed)
         {
             if (_previousLeftButtonState == ButtonState.Released)
             {
-                foreach (var leftClick in _clickables)
-                {
-                    if (leftClick.ClickArea.Contains(guiLayerView.MousePosition))
-                    {
-                        _pressedClickable = leftClick;
-                        break;
-                    }
-                    _pressedClickable = null; // Nothing was clicked.
-                }
-
-                // Clicked for the first time. Check if we clicked something.
-                foreach (var leftClickDraggable in _clickDraggables)
-                {
-                    if (leftClickDraggable.ClickArea.Contains(guiLayerView.MousePosition))
-                    {
-                        // We clicked a draggable.
-                        leftClickDraggable.OnLatch();
-                        _latchedClickDraggable = leftClickDraggable;
-                        break;
-                    }
-
-                    // We clicked nothing.
-                    _latchedClickDraggable = null;
-                }
+                HandleLeftClickStarted();
             }
 
             // If we are latched onto a draggable, drag it.
             _latchedClickDraggable?.OnDrag(guiLayerView.MousePosition);
         }
-        else
+        else if (_previousLeftButtonState == ButtonState.Pressed)
         {
-            // Check for release
-            if (_previousLeftButtonState == ButtonState.Pressed)
-            {
-                if ((_pressedClickable != null) && _pressedClickable.ClickArea.Contains(guiLayerView.MousePosition))
-                {
-                    // We clicked something and released the mouse button.
-                    _pressedClickable.OnClick();
-                }
-                _pressedClickable = null;
-
-                if (_latchedClickDraggable != null)
-                {
-                    // We were latched onto a draggable and released the mouse button.
-                    _latchedClickDraggable.OnRelease();
-                    _latchedClickDraggable = null;
-                }
-            }
+            HandleLeftClickReleased();
         }
 
         _previousLeftButtonState = leftButtonState;
     }
 
-    ButtonState _previousMiddleButtonState = ButtonState.Released;
+    void HandleLeftClickStarted()
+    {
+        _pressedClickable = null;
+        foreach (var leftClick in _clickables)
+        {
+            if (leftClick.ClickArea.Contains(guiLayerView.MousePosition))
+            {
+                _pressedClickable = leftClick;
+                break;
+            }
+        }
+
+        // Clicked for the first time. Check if we clicked something.
+        _latchedClickDraggable = null;
+        foreach (var leftClickDraggable in _clickDraggables)
+        {
+            if (leftClickDraggable.ClickArea.Contains(guiLayerView.MousePosition))
+            {
+                // We clicked a draggable.
+                leftClickDraggable.OnLatch();
+                _latchedClickDraggable = leftClickDraggable;
+                break;
+            }
+        }
+    }
+
+    void HandleLeftClickReleased()
+    {
+        // Make sure that we are still over the clickable we pressed
+        // This allows the user to cancel a click by moving the mouse away before releasing
+        if (_pressedClickable != null)
+        {
+            if (_pressedClickable.ClickArea.Contains(guiLayerView.MousePosition))
+            {
+                // We clicked something and released the mouse button.
+                _pressedClickable.OnClick();
+            }
+        }
+        else
+        {
+            InvokeDefaultLeftClick();
+        }
+
+        _pressedClickable = null;
+        _latchedClickDraggable?.OnRelease();
+        _latchedClickDraggable = null;
+    }
 
     void HandleMiddleClick(ButtonState middleButtonState)
     {
@@ -314,6 +321,19 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
         }
 
         _defaultScrollable?.Invoke(delta);
+    }
+
+    void InvokeDefaultLeftClick()
+    {
+        // invoke only the handler from the topmost layer
+        if (Gui.DefaultLeftClick != null)
+        {
+            Gui.DefaultLeftClick.Invoke(guiLayerView.MousePosition);
+        }
+        else
+        {
+            World.DefaultLeftClick?.Invoke(worldLayerView.MousePosition);
+        }
     }
 
     static bool AreModifiersPressed(KeyModifiers required, KeyboardState keyboard)
