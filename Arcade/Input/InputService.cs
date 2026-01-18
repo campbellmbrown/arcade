@@ -24,10 +24,40 @@ public interface IInputServiceGeneric
     void TearDown();
 }
 
+[Flags]
+public enum KeyModifiers
+{
+    None = 0,
+    Control = 1 << 0,
+    Alt = 1 << 1,
+    Shift = 1 << 2,
+}
+
+public static class KeyModifierExtensions
+{
+    public static int Count(this KeyModifiers self)
+    {
+        int count = 0;
+        if (self.HasFlag(KeyModifiers.Control))
+        {
+            count++;
+        }
+        if (self.HasFlag(KeyModifiers.Alt))
+        {
+            count++;
+        }
+        if (self.HasFlag(KeyModifiers.Shift))
+        {
+            count++;
+        }
+        return count;
+    }
+}
+
 // TODO: move more interfaces to `IInputServiceGeneric` if needed.
 public interface IInputService<TControl> : IInputServiceGeneric, IFrameTickable where TControl : Enum
 {
-    void RegisterControl(TControl control, Keys key);
+    void RegisterControl(TControl control, Keys key, KeyModifiers modifiers = KeyModifiers.None);
     void RegisterHeldKey(TControl control, Action action);
     void RegisterSingleShotKey(TControl control, Action action);
     void RegisterLeftClickDraggable(IClickDraggable clickDraggable);
@@ -46,14 +76,16 @@ public interface IInputService<TControl> : IInputServiceGeneric, IFrameTickable 
 
 public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLayerView) : IInputService<TControl> where TControl : Enum
 {
-    record HeldInput(TControl Control, Keys Key, Action Action);
+    public record KeyBinding(Keys Key, KeyModifiers Modifiers);
 
-    record SingleShotInput(TControl Control, Keys Key, Action Action)
+    record HeldInput(TControl Control, KeyBinding KeyBinding, Action Action);
+
+    record SingleShotInput(TControl Control, KeyBinding KeyBinding, Action Action)
     {
         public bool IsKeyHeldDown { get; set; } = true;
     }
 
-    readonly Dictionary<TControl, Keys> _controlKeys = [];
+    readonly Dictionary<TControl, KeyBinding> _controlKeys = [];
     readonly List<HeldInput> _heldKeys = [];
     readonly List<SingleShotInput> _singleShotInputs = [];
     readonly List<IClickDraggable> _clickDraggables = [];
@@ -66,29 +98,47 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
     public IInputContext Gui { get; } = new InputContext(guiLayerView);
     public IInputContext World { get; } = new InputContext(worldLayerView);
 
-    public void RegisterControl(TControl control, Keys key)
+    public void RegisterControl(TControl control, Keys key, KeyModifiers modifiers = KeyModifiers.None)
     {
-        _controlKeys[control] = key;
+        _controlKeys[control] = new KeyBinding(key, modifiers);
     }
 
     public void RegisterHeldKey(TControl control, Action action)
     {
-        if (!_controlKeys.TryGetValue(control, out Keys key))
+        if (!_controlKeys.TryGetValue(control, out var keyBinding))
         {
             throw new ArgumentException($"Control {control} has not been registered.");
         }
 
-        _heldKeys.Add(new HeldInput(control, key, action));
+        // Sort by the number of modifiers, descending, so that more specific bindings are checked first.
+        int index = _heldKeys.FindIndex(input => input.KeyBinding.Modifiers.Count() < keyBinding.Modifiers.Count());
+        if (index >= 0)
+        {
+            _heldKeys.Insert(index, new HeldInput(control, keyBinding, action));
+        }
+        else
+        {
+            _heldKeys.Add(new HeldInput(control, keyBinding, action));
+        }
     }
 
     public void RegisterSingleShotKey(TControl control, Action action)
     {
-        if (!_controlKeys.TryGetValue(control, out Keys key))
+        if (!_controlKeys.TryGetValue(control, out var keyBinding))
         {
             throw new ArgumentException($"Control {control} has not been registered.");
         }
 
-        _singleShotInputs.Add(new SingleShotInput(control, key, action));
+        // Sort by the number of modifiers, descending, so that more specific bindings are checked first.
+        int index = _singleShotInputs.FindIndex(input => input.KeyBinding.Modifiers.Count() < keyBinding.Modifiers.Count());
+        if (index >= 0)
+        {
+            _singleShotInputs.Insert(index, new SingleShotInput(control, keyBinding, action));
+        }
+        else
+        {
+            _singleShotInputs.Add(new SingleShotInput(control, keyBinding, action));
+        }
     }
 
     public void RegisterLeftClickDraggable(IClickDraggable clickDraggable)
@@ -127,12 +177,13 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
 
         foreach (var singleShot in _singleShotInputs)
         {
-            if (keyboardState.IsKeyDown(singleShot.Key))
+            if (keyboardState.IsKeyDown(singleShot.KeyBinding.Key) && AreModifiersPressed(singleShot.KeyBinding.Modifiers, keyboardState))
             {
                 if (!singleShot.IsKeyHeldDown)
                 {
                     singleShot.Action();
                     singleShot.IsKeyHeldDown = true;
+                    break; // Fire only first match
                 }
             }
             else
@@ -143,7 +194,7 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
 
         foreach (var heldKey in _heldKeys)
         {
-            if (keyboardState.IsKeyDown(heldKey.Key))
+            if (keyboardState.IsKeyDown(heldKey.KeyBinding.Key) && AreModifiersPressed(heldKey.KeyBinding.Modifiers, keyboardState))
             {
                 heldKey.Action();
             }
@@ -263,5 +314,16 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
         }
 
         _defaultScrollable?.Invoke(delta);
+    }
+
+    static bool AreModifiersPressed(KeyModifiers required, KeyboardState keyboard)
+    {
+        bool ctrlPressed = keyboard.IsKeyDown(Keys.LeftControl) || keyboard.IsKeyDown(Keys.RightControl);
+        bool altPressed = keyboard.IsKeyDown(Keys.LeftAlt) || keyboard.IsKeyDown(Keys.RightAlt);
+        bool shiftPressed = keyboard.IsKeyDown(Keys.LeftShift) || keyboard.IsKeyDown(Keys.RightShift);
+
+        return (ctrlPressed == required.HasFlag(KeyModifiers.Control)) &&
+               (altPressed == required.HasFlag(KeyModifiers.Alt)) &&
+               (shiftPressed == required.HasFlag(KeyModifiers.Shift));
     }
 }
