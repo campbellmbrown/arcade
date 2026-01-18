@@ -21,6 +21,7 @@ public class NineSliceButton : Widget, IClickable
     int _partialVerticalChunkWidth;
     int _partialHorizontalChunkHeight;
 
+    // TODO: use SpriteSheet
     public static Texture2D? GlobalTexture { get; set; } = null;
 
     public NineSliceButton(Texture2D texture, IWidget widget)
