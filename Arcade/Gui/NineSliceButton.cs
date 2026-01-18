@@ -6,7 +6,7 @@ using MonoGame.Extended;
 
 namespace Arcade.Gui;
 
-public class PushButton : Widget, IClickable
+public class NineSliceButton : Widget, IClickable
 {
     const int TEXTURE_CORNER_PIXELS = 3;
 
@@ -21,10 +21,18 @@ public class PushButton : Widget, IClickable
     int _partialVerticalChunkWidth;
     int _partialHorizontalChunkHeight;
 
-    public PushButton(Texture2D texture, IWidget widget)
+    public static Texture2D? GlobalTexture { get; set; } = null;
+
+    public NineSliceButton(Texture2D texture, IWidget widget)
     {
         _texture = texture;
         _widget = widget;
+    }
+
+    public NineSliceButton(IWidget widget) : this(
+        GlobalTexture ?? throw new InvalidOperationException("GlobalTexture must be set before using this constructor."),
+        widget)
+    {
     }
 
     public RectangleF ClickArea => new(Position, new Size2(Width, Height));
