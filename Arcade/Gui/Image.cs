@@ -6,11 +6,6 @@ namespace Arcade.Gui;
 
 public class Image(Texture2D texture) : Widget
 {
-    public override void Update(Vector2 position, int availableWidth, int availableHeight)
-    {
-        base.Update(position, availableWidth, availableHeight);
-    }
-
     public override void Draw(IRenderer renderer)
     {
         base.Draw(renderer);

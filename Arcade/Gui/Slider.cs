@@ -42,7 +42,7 @@ public abstract class Slider : Widget, IClickDraggable
 
     public RectangleF ClickArea => new(Position.X, Position.Y, Width, Height);
 
-    public Slider(Texture2D thumbTexture, Texture2D trackTexture, float min, float max)
+    protected Slider(Texture2D thumbTexture, Texture2D trackTexture, float min, float max)
     {
         // TODO: add a way to register default thumb and track textures.
         if (thumbTexture.Height < trackTexture.Height)
@@ -74,14 +74,14 @@ public abstract class Slider : Widget, IClickDraggable
 
     public abstract void OnDrag(Vector2 position);
 
+    public void OnRelease()
+    {
+    }
+
     public virtual void SetValueFromPosition(float distanceFromStart)
     {
         var portion = distanceFromStart / _sliderTravelDistance;
         Value = MathHelper.Clamp(Min + Range * portion, Min, Max);
-    }
-
-    public void OnRelease()
-    {
     }
 
     protected float GetPositionFromValue() => (Value - Min) / Range * _sliderTravelDistance;
