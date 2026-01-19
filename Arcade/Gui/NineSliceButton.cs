@@ -6,13 +6,12 @@ using MonoGame.Extended;
 
 namespace Arcade.Gui;
 
-public class NineSliceButton : Widget, IClickable
+public class NineSliceButton : ButtonBase
 {
     const int TEXTURE_CORNER_PIXELS = 3;
 
     readonly Texture2D _texture;
     readonly IWidget _widget;
-    readonly List<Action> _actions = [];
 
     int _chunkWidth;
     int _chunkHeight;
@@ -35,22 +34,6 @@ public class NineSliceButton : Widget, IClickable
         widget)
     {
     }
-
-    public RectangleF ClickArea => new(Position, new Size2(Width, Height));
-
-    public void AddAction(Action action)
-    {
-        _actions.Add(action);
-    }
-
-    public void OnClick()
-    {
-        foreach (Action action in _actions)
-        {
-            action();
-        }
-    }
-
 
     protected override int IntrinsicWidth() => _widget.MeasureWidth();
 

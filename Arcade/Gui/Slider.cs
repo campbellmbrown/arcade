@@ -40,7 +40,9 @@ public abstract class Slider : Widget, IClickDraggable
         }
     }
 
-    public RectangleF ClickArea => new(Position.X, Position.Y, Width, Height);
+    public RectangleF InteractionArea => new(Position.X, Position.Y, Width, Height);
+    public bool IsHovering { get; set; } = false;
+    public bool IsLatched { get; set; } = false;
 
     protected Slider(Texture2D thumbTexture, Texture2D trackTexture, float min, float max)
     {

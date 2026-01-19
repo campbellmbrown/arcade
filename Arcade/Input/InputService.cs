@@ -1,23 +1,7 @@
 using Arcade.Core;
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
-using MonoGame.Extended;
 
 namespace Arcade.Input;
-
-public interface IClickDraggable
-{
-    RectangleF ClickArea { get; }
-    void OnLatch();
-    void OnDrag(Vector2 position);
-    void OnRelease();
-}
-
-public interface IClickable
-{
-    RectangleF ClickArea { get; }
-    void OnClick();
-}
 
 public interface IInputServiceGeneric
 {
@@ -60,8 +44,6 @@ public interface IInputService<TControl> : IInputServiceGeneric, IFrameTickable 
     void RegisterControl(TControl control, Keys key, KeyModifiers modifiers = KeyModifiers.None);
     void RegisterHeldKey(TControl control, Action action);
     void RegisterSingleShotKey(TControl control, Action action);
-    void RegisterLeftClickDraggable(IClickDraggable clickDraggable);
-    void RegisterLeftClickSingleShot(IClickable clickable);
 
     /// <summary>
     /// Registers a default scrollable that is invoked when none of the contexts handle the scroll (i.e. when no
@@ -90,13 +72,9 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
     readonly Dictionary<TControl, KeyBinding> _controlKeys = [];
     readonly List<HeldInput> _heldKeys = [];
     readonly List<SingleShotInput> _singleShotInputs = [];
-    readonly List<IClickDraggable> _clickDraggables = [];
-    readonly List<IClickable> _clickables = [];
 
     Action<int>? _defaultScrollable;
 
-    IClickable? _pressedClickable;
-    IClickDraggable? _latchedClickDraggable;
     ButtonState _previousLeftButtonState = ButtonState.Released;
     ButtonState _previousMiddleButtonState = ButtonState.Released;
     int _previousScrollValue = 0;
@@ -149,16 +127,6 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
         }
     }
 
-    public void RegisterLeftClickDraggable(IClickDraggable clickDraggable)
-    {
-        _clickDraggables.Add(clickDraggable);
-    }
-
-    public void RegisterLeftClickSingleShot(IClickable clickable)
-    {
-        _clickables.Add(clickable);
-    }
-
     public void RegisterDefaultScrollable(Action<int> onScroll)
     {
         if (_defaultScrollable != null)
@@ -172,8 +140,6 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
     {
         _heldKeys.Clear();
         _singleShotInputs.Clear();
-        _clickDraggables.Clear();
-        _clickables.Clear();
         _defaultScrollable = null;
         Gui.TearDown();
         World.TearDown();
@@ -209,80 +175,38 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
         }
 
         var mouseState = Mouse.GetState();
-        HandleLeftClick(mouseState.LeftButton);
+        InputEvent inputEvent = new();
+
+        HandleHover(inputEvent); // Must be done first
+        HandleLeftClick(mouseState.LeftButton, inputEvent);
         HandleMiddleClick(mouseState.MiddleButton);
-        HandleMouseWheel(mouseState.ScrollWheelValue);
-        HandleHover();
+        HandleMouseWheel(mouseState.ScrollWheelValue, inputEvent);
     }
 
-    void HandleLeftClick(ButtonState leftButtonState)
+    void HandleLeftClick(ButtonState leftButtonState, InputEvent inputEvent)
     {
         if (leftButtonState == ButtonState.Pressed)
         {
             if (_previousLeftButtonState == ButtonState.Released)
             {
-                HandleLeftClickStarted();
+                Gui.HandleLeftClickStart(inputEvent);
+                World.HandleLeftClickStart(inputEvent);
             }
-
-            // If we are latched onto a draggable, drag it.
-            _latchedClickDraggable?.OnDrag(guiLayerView.MousePosition);
+            else
+            {
+                Gui.HandleLeftClickHold(inputEvent);
+                World.HandleLeftClickHold(inputEvent);
+            }
         }
         else if (_previousLeftButtonState == ButtonState.Pressed)
         {
-            HandleLeftClickReleased();
+            Gui.HandleLeftClickRelease(inputEvent);
+            World.HandleLeftClickRelease(inputEvent);
         }
-
         _previousLeftButtonState = leftButtonState;
     }
 
-    void HandleLeftClickStarted()
-    {
-        _pressedClickable = null;
-        foreach (var leftClick in _clickables)
-        {
-            if (leftClick.ClickArea.Contains(guiLayerView.MousePosition))
-            {
-                _pressedClickable = leftClick;
-                break;
-            }
-        }
-
-        // Clicked for the first time. Check if we clicked something.
-        _latchedClickDraggable = null;
-        foreach (var leftClickDraggable in _clickDraggables)
-        {
-            if (leftClickDraggable.ClickArea.Contains(guiLayerView.MousePosition))
-            {
-                // We clicked a draggable.
-                leftClickDraggable.OnLatch();
-                _latchedClickDraggable = leftClickDraggable;
-                break;
-            }
-        }
-    }
-
-    void HandleLeftClickReleased()
-    {
-        // Make sure that we are still over the clickable we pressed
-        // This allows the user to cancel a click by moving the mouse away before releasing
-        if (_pressedClickable != null)
-        {
-            if (_pressedClickable.ClickArea.Contains(guiLayerView.MousePosition))
-            {
-                // We clicked something and released the mouse button.
-                _pressedClickable.OnClick();
-            }
-        }
-        else
-        {
-            InvokeDefaultLeftClick();
-        }
-
-        _pressedClickable = null;
-        _latchedClickDraggable?.OnRelease();
-        _latchedClickDraggable = null;
-    }
-
+    // TODO: use InputEvent, and move to IInputContext
     void HandleMiddleClick(ButtonState middleButtonState)
     {
         if (middleButtonState == ButtonState.Pressed)
@@ -307,7 +231,7 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
         _previousMiddleButtonState = middleButtonState;
     }
 
-    void HandleMouseWheel(int currentScroll)
+    void HandleMouseWheel(int currentScroll, InputEvent inputEvent)
     {
         int delta = currentScroll - _previousScrollValue;
         if (delta == 0)
@@ -316,38 +240,20 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
         }
         _previousScrollValue = currentScroll;
 
-        if (Gui.HandleScroll(delta))
-        {
-            return;
-        }
-        if (World.HandleScroll(delta))
-        {
-            return;
-        }
+        Gui.HandleScroll(delta, inputEvent);
+        World.HandleScroll(delta, inputEvent);
 
-        _defaultScrollable?.Invoke(delta);
-    }
-
-    void InvokeDefaultLeftClick()
-    {
-        // invoke only the handler from the topmost layer
-        if (Gui.DefaultLeftClick != null)
+        if (!inputEvent.ScrollConsumed)
         {
-            Gui.DefaultLeftClick.Invoke(guiLayerView.MousePosition);
-        }
-        else
-        {
-            World.DefaultLeftClick?.Invoke(worldLayerView.MousePosition);
+            _defaultScrollable?.Invoke(delta);
         }
     }
 
-    void HandleHover()
+    void HandleHover(InputEvent inputEvent)
     {
-        IsHoveringAnyContext = Gui.HandleHover();
-        if (!IsHoveringAnyContext)
-        {
-            IsHoveringAnyContext = World.HandleHover();
-        }
+        Gui.HandleHover(inputEvent);
+        World.HandleHover(inputEvent);
+        IsHoveringAnyContext = inputEvent.HoverConsumed;
     }
 
     static bool AreModifiersPressed(KeyModifiers required, KeyboardState keyboard)
