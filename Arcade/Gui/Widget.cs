@@ -12,7 +12,7 @@ public interface IWidget : IVisual, IFrameTickable
     /// The resolved width of the widget, including alignment.
     /// </summary>
     /// <value>The width in pixels.</value>
-    int Width { get;}
+    int Width { get; }
 
     /// <summary>
     /// The resolved width of the widget, including alignment and margins.
