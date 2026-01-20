@@ -353,7 +353,6 @@ public class InputContext(ILayerView layerView) : IInputContext
 
         if (_hoveredScrollable != null)
         {
-            Console.WriteLine($"Scrolling {_hoveredScrollable} by {delta}");
             _hoveredScrollable.InputEvent.Scroll(delta);
             inputEvent.ScrollConsumed = true;
         }
@@ -394,7 +393,6 @@ public class InputContext(ILayerView layerView) : IInputContext
         {
             // Because we don't consume the hover event for scrollables, we need to make sure only one scrollable
             // can be hovered at a time, hence the _hoveredScrollable check.
-            Console.WriteLine($"HoverConsumed: {inputEvent.HoverConsumed}, Scrollable Area: {scrollable.InteractionArea}, Mouse Position: {mousePosition}");
             if (!inputEvent.HoverConsumed && scrollable.InteractionArea.Contains(mousePosition))
             {
                 _hoveredScrollable = scrollable;
