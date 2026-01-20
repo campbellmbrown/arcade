@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Arcade.Core;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
@@ -27,8 +28,6 @@ public interface IHoverable
     RectangleF InteractionArea { get; }
     bool IsHovering { get; set; }
 }
-
-// TODO: update all of this documentation
 
 /// <summary>
 /// Context for inputs that requires layer-specific handling. This context is bound to a specific layer view.
@@ -120,7 +119,12 @@ public class InputContext(ILayerView layerView) : IInputContext
     readonly List<IScrollable> _scrollables = [];
     readonly List<IHoverable> _hoverables = [];
 
+    // Only one of the clickables, click-draggables, or hoverables can be hovered at a time
     IHoverable? _hovered = null;
+
+    // Only one scrollable can be hovered at a time, independent of the other hoverables
+    IScrollable? _hoveredScrollable = null;
+
     IClickable? _latchedClickable = null;
     IClickDraggable? _latchedClickDraggable = null;
 
@@ -288,92 +292,37 @@ public class InputContext(ILayerView layerView) : IInputContext
             return;
         }
 
-        if (_hovered is IScrollable scrollable)
+        if (_hoveredScrollable != null)
         {
-            scrollable.OnScroll(delta);
+            _hoveredScrollable.OnScroll(delta);
             inputEvent.ScrollConsumed = true;
         }
     }
 
     public void HandleHover(InputEvent inputEvent)
     {
-        // TODO: bug - if I hover over a hoverable, then move to a clickable, the hoverable stays hovered, and the
-        // clickable becomes hovered. Both are hovered at the same time. Need to fix that.
-
-        if (inputEvent.HoverConsumed)
-        {
-            // Another context has already consumed the hover event, nothing on this context can be hovered
-            return;
-        }
-
-        if (_latchedClickable != null || _latchedClickDraggable != null)
-        {
-            // Nothing else can be hovered while a clickable or click-draggable is latched
-            inputEvent.HoverConsumed = true;
-        }
-
         _hovered = null;
-
+        _hoveredScrollable = null;
         var mousePosition = layerView.MousePosition;
-        CheckClickableHover(mousePosition, inputEvent);
-        CheckClickDraggableHover(mousePosition, inputEvent);
+
+        // First, check the scrollables. Only one of these can be hovered (if the hover event wasn't already consumed)
+        // This does not consume the hover event, so other hoverables can still be checked
         CheckScrollableHover(mousePosition, inputEvent);
-        CheckRemainingHoverables(mousePosition, inputEvent);
-    }
 
-    void CheckClickableHover(Vector2 mousePosition, InputEvent inputEvent)
-    {
-        foreach (var clickable in _leftClickSingleShots)
-        {
-            if (_latchedClickable != null)
-            {
-                // Only the latched clickable can be hovered
-                if ((clickable == _latchedClickable) && clickable.InteractionArea.Contains(mousePosition))
-                {
-                    ConsumeHover(clickable, inputEvent);
-                }
-                else
-                {
-                    clickable.IsHovering = false;
-                }
-            }
-            else if (!inputEvent.HoverConsumed && clickable.InteractionArea.Contains(mousePosition))
-            {
-                ConsumeHover(clickable, inputEvent);
-            }
-            else
-            {
-                clickable.IsHovering = false;
-            }
-        }
-    }
+        // If there is a latched clickable, only it can be hovered. This consumes the hover event so no other
+        // hoverables are checked
+        CheckLatchedHover(_latchedClickable, mousePosition, inputEvent);
+        CheckLatchedHover(_latchedClickDraggable, mousePosition, inputEvent);
 
-    void CheckClickDraggableHover(Vector2 mousePosition, InputEvent inputEvent)
-    {
-        foreach (var clickDraggable in _leftClickDraggables)
+        // Then check the other hoverables. The latched hoverable (if any) has already been checked, so skip it here
+        CheckHoverables(_leftClickSingleShots, mousePosition, inputEvent, skip: _latchedClickable);
+        CheckHoverables(_leftClickDraggables, mousePosition, inputEvent, skip: _latchedClickDraggable);
+        CheckHoverables(_hoverables, mousePosition, inputEvent);
+
+        // Finally, consume the hover if the scrollable that we checked earlier is hovered
+        if (_hoveredScrollable != null)
         {
-            if (_latchedClickDraggable != null)
-            {
-                // Only the latched click-draggable can be hovered
-                if ((clickDraggable == _latchedClickDraggable) && clickDraggable.InteractionArea.Contains(mousePosition))
-                {
-                    _hovered = clickDraggable;
-                    _hovered.IsHovering = true;
-                    inputEvent.HoverConsumed = true;
-                }
-                else
-                {
-                    clickDraggable.IsHovering = false;
-                }
-            }
-            else if (!inputEvent.HoverConsumed && clickDraggable.InteractionArea.Contains(mousePosition))
-            {
-                ConsumeHover(clickDraggable, inputEvent);
-            }
-            else
-            {
-                clickDraggable.IsHovering = false;
-            }
+            inputEvent.HoverConsumed = true;
         }
     }
 
@@ -381,9 +330,13 @@ public class InputContext(ILayerView layerView) : IInputContext
     {
         foreach (var scrollable in _scrollables)
         {
-            if (!inputEvent.HoverConsumed && scrollable.InteractionArea.Contains(mousePosition))
+            // Because we don't consume the hover event for scrollables, we need to make sure only one scrollable
+            // can be hovered at a time, hence the _hoveredScrollable check.
+            if ((_hoveredScrollable == null) && !inputEvent.HoverConsumed && scrollable.InteractionArea.Contains(mousePosition))
             {
-                ConsumeHover(scrollable, inputEvent);
+                _hoveredScrollable = scrollable;
+                _hoveredScrollable.IsHovering = true;
+                // Don't consume the hover just yet, because other non-scrollable hoverables may need to be checked
             }
             else
             {
@@ -392,10 +345,30 @@ public class InputContext(ILayerView layerView) : IInputContext
         }
     }
 
-    void CheckRemainingHoverables(Vector2 mousePosition, InputEvent inputEvent)
+    void CheckLatchedHover(IHoverable? hoverable, Vector2 mousePosition, InputEvent inputEvent)
     {
-        foreach (var hoverable in _hoverables)
+        if (inputEvent.HoverConsumed && (hoverable != null))
         {
+            if (hoverable.InteractionArea.Contains(mousePosition))
+            {
+                ConsumeHover(hoverable, inputEvent);
+            }
+            else
+            {
+                hoverable.IsHovering = false;
+            }
+            inputEvent.HoverConsumed = true; // Only the latched hoverable can be hovered
+        }
+    }
+
+    void CheckHoverables(IEnumerable<IHoverable> hoverables, Vector2 mousePosition, InputEvent inputEvent, IHoverable? skip = null)
+    {
+        foreach (var hoverable in hoverables)
+        {
+            if (hoverable == skip)
+            {
+                continue;
+            }
             if (!inputEvent.HoverConsumed && hoverable.InteractionArea.Contains(mousePosition))
             {
                 ConsumeHover(hoverable, inputEvent);
@@ -409,13 +382,7 @@ public class InputContext(ILayerView layerView) : IInputContext
 
     void ConsumeHover(IHoverable hoverable, InputEvent inputEvent)
     {
-        // Only one hoverable can consume the hover event
-        // TODO: This doesn't work! Because the scrollable hoverable should still work when hovering over a clickable,
-        // it currently doesn't. Need to rethink this.
-        if (_hovered != null)
-        {
-            throw new InvalidOperationException("Attempted to consume hover when it was already consumed.");
-        }
+        Debug.Assert(_hovered == null, "Only one hoverable can be hovered at a time.");
         _hovered = hoverable;
         hoverable.IsHovering = true;
         inputEvent.HoverConsumed = true;
