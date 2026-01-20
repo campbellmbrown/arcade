@@ -229,6 +229,16 @@ public class InputContext(ILayerView layerView) : IInputContext
         _onPan = null;
         _onPanEnd = null;
         _panRegistered = false;
+
+        _latchedClickable?.InputEvent.IsLatched = false;
+        _latchedClickDraggable?.InputEvent.IsLatched = false;
+        _hovered?.InputEvent.IsHovering = false;
+        _hoveredScrollable?.InputEvent.IsHovering = false;
+        _latchedClickable = null;
+        _latchedClickDraggable = null;
+        _hovered = null;
+        _hoveredScrollable = null;
+
         _leftClickSingleShots.Clear();
         _leftClickDraggables.Clear();
         _scrollables.Clear();
@@ -343,6 +353,7 @@ public class InputContext(ILayerView layerView) : IInputContext
 
         if (_hoveredScrollable != null)
         {
+            Console.WriteLine($"Scrolling {_hoveredScrollable} by {delta}");
             _hoveredScrollable.InputEvent.Scroll(delta);
             inputEvent.ScrollConsumed = true;
         }
@@ -350,6 +361,8 @@ public class InputContext(ILayerView layerView) : IInputContext
 
     public void HandleHover(InputEvent inputEvent)
     {
+        _hovered?.InputEvent.IsHovering = false;
+        _hoveredScrollable?.InputEvent.IsHovering = false;
         _hovered = null;
         _hoveredScrollable = null;
         var mousePosition = layerView.MousePosition;
@@ -364,8 +377,8 @@ public class InputContext(ILayerView layerView) : IInputContext
         CheckLatchedHover(_latchedClickDraggable, mousePosition, inputEvent);
 
         // Then check the other hoverables. The latched hoverable (if any) has already been checked, so skip it here
-        CheckHoverables(_leftClickSingleShots, mousePosition, inputEvent, skip: _latchedClickable);
-        CheckHoverables(_leftClickDraggables, mousePosition, inputEvent, skip: _latchedClickDraggable);
+        CheckHoverables(_leftClickSingleShots, mousePosition, inputEvent);
+        CheckHoverables(_leftClickDraggables, mousePosition, inputEvent);
         CheckHoverables(_hoverables, mousePosition, inputEvent);
 
         // Finally, consume the hover if the scrollable that we checked earlier is hovered
@@ -381,55 +394,41 @@ public class InputContext(ILayerView layerView) : IInputContext
         {
             // Because we don't consume the hover event for scrollables, we need to make sure only one scrollable
             // can be hovered at a time, hence the _hoveredScrollable check.
-            if ((_hoveredScrollable == null) && !inputEvent.HoverConsumed && scrollable.InteractionArea.Contains(mousePosition))
+            Console.WriteLine($"HoverConsumed: {inputEvent.HoverConsumed}, Scrollable Area: {scrollable.InteractionArea}, Mouse Position: {mousePosition}");
+            if (!inputEvent.HoverConsumed && scrollable.InteractionArea.Contains(mousePosition))
             {
                 _hoveredScrollable = scrollable;
                 _hoveredScrollable.InputEvent.IsHovering = true;
                 // Don't consume the hover just yet, because other non-scrollable hoverables may need to be checked
-            }
-            else
-            {
-                scrollable.InputEvent.IsHovering = false;
+                return;
             }
         }
     }
 
     void CheckLatchedHover(IInteractive<HoverEvent>? hoverable, Vector2 mousePosition, InputEvent inputEvent)
     {
-        if (inputEvent.HoverConsumed && (hoverable != null))
+        if (!inputEvent.HoverConsumed && (hoverable != null))
         {
             if (hoverable.InteractionArea.Contains(mousePosition))
             {
                 ConsumeHover(hoverable, inputEvent);
             }
-            else
-            {
-                hoverable.InputEvent.IsHovering = false;
-            }
             inputEvent.HoverConsumed = true; // Only the latched hoverable can be hovered
         }
     }
 
-    void CheckHoverables(
-        IEnumerable<IInteractive<HoverEvent>> hoverables,
-        Vector2 mousePosition,
-        InputEvent inputEvent,
-        IInteractive<HoverEvent>? skip = null
-    )
+    void CheckHoverables(IEnumerable<IInteractive<HoverEvent>> hoverables, Vector2 mousePosition, InputEvent inputEvent)
     {
+        if (inputEvent.HoverConsumed)
+        {
+            return;
+        }
         foreach (var hoverable in hoverables)
         {
-            if (hoverable == skip)
-            {
-                continue;
-            }
             if (!inputEvent.HoverConsumed && hoverable.InteractionArea.Contains(mousePosition))
             {
                 ConsumeHover(hoverable, inputEvent);
-            }
-            else
-            {
-                hoverable.InputEvent.IsHovering = false;
+                return;
             }
         }
     }
