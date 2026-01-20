@@ -22,12 +22,12 @@ public class ImageButton(Texture2D texture) : ButtonBase
     {
         base.Draw(renderer);
 
-        if (IsHovering)
+        if (InputEvent.IsHovering)
         {
             renderer.SpriteBatch.FillRectangle(InteractionArea, HoverBackgroundColor);
         }
 
-        float scale = IsLatched ? _latchScale : 1.0f;
+        float scale = InputEvent.IsLatched ? _latchScale : 1.0f;
         renderer.SpriteBatch.Draw(texture, Position + _centerOffset, null, Color.White, 0f, _centerOffset, scale, SpriteEffects.None, 0f);
     }
 }

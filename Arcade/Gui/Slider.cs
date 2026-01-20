@@ -16,8 +16,6 @@ public abstract class Slider : Widget, IClickDraggable
     protected int _numFullTrackChunks;
     protected int _partialTrackChunkLength;
 
-    readonly List<Action<float>> _setters = [];
-
     public float Min { get; set; }
     public float Max { get; set; }
     public float Range => Max - Min;
@@ -33,16 +31,14 @@ public abstract class Slider : Widget, IClickDraggable
                 throw new ArgumentOutOfRangeException(nameof(Value), $"Value must be between {Min} and {Max}.");
             }
             _value = value;
-            foreach (var setter in _setters)
-            {
-                setter(Value);
-            }
+            ValueChanged?.Invoke(_value);
         }
     }
 
     public RectangleF InteractionArea => new(Position.X, Position.Y, Width, Height);
-    public bool IsHovering { get; set; } = false;
-    public bool IsLatched { get; set; } = false;
+    public ClickDragEvent InputEvent { get; } = new();
+
+    public event Action<float>? ValueChanged;
 
     protected Slider(Texture2D thumbTexture, Texture2D trackTexture, float min, float max)
     {
@@ -63,21 +59,8 @@ public abstract class Slider : Widget, IClickDraggable
         Min = min;
         Max = max;
         _value = Min;
-    }
 
-    public void AddSetter(Action<float> setter)
-    {
-        _setters.Add(setter);
-    }
-
-    public void OnLatch()
-    {
-    }
-
-    public abstract void OnDrag(Vector2 position);
-
-    public void OnRelease()
-    {
+        InputEvent.Dragged += OnDrag;
     }
 
     public virtual void SetValueFromPosition(float distanceFromStart)
@@ -85,6 +68,8 @@ public abstract class Slider : Widget, IClickDraggable
         var portion = distanceFromStart / _sliderTravelDistance;
         Value = MathHelper.Clamp(Min + Range * portion, Min, Max);
     }
+
+    protected abstract void OnDrag(Vector2 position);
 
     protected float GetPositionFromValue() => (Value - Min) / Range * _sliderTravelDistance;
 

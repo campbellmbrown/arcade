@@ -5,28 +5,83 @@ using MonoGame.Extended;
 
 namespace Arcade.Input;
 
-public interface IClickable : IHoverable
+public class HoverEvent
 {
-    bool IsLatched { get; set; }
-
-    void OnLatch();
-    void OnRelease();
+    public bool IsHovering { get; set; }
 }
 
-public interface IClickDraggable : IClickable
+public class ClickEvent : HoverEvent
 {
-    void OnDrag(Vector2 position);
+    /// <summary>
+    /// The current latched state of the clickable.
+    /// </summary>
+    /// <remarks>
+    /// This should only be set by the input system.
+    /// </remarks>
+    /// <value>True if the clickable is latched, false otherwise.</value>
+    public bool IsLatched { get; set; }
+
+    /// <summary>
+    /// Raised when the clickable is released.
+    /// </summary>
+    public event Action? Latched;
+
+    /// <summary>
+    /// Raised when the clickable is released.
+    /// </summary>
+    public event Action? Released;
+
+    public void Latch()
+    {
+        IsLatched = true;
+        Latched?.Invoke();
+    }
+
+    public void Release(bool fireEvent = true)
+    {
+        IsLatched = false;
+        if (fireEvent)
+        {
+            Released?.Invoke();
+        }
+    }
 }
 
-public interface IScrollable : IHoverable
+public class ClickDragEvent : ClickEvent
 {
-    void OnScroll(int delta);
+    /// <summary>
+    /// Raised when the clickable is dragged.
+    /// </summary>
+    public event Action<Vector2>? Dragged;
+
+    public void Drag(Vector2 position)
+    {
+        Dragged?.Invoke(position);
+    }
 }
 
-public interface IHoverable
+public class ScrollEvent : HoverEvent
+{
+    /// <summary>
+    /// Raised when the scrollable is scrolled.
+    /// </summary>
+    public event Action<int>? Scrolled;
+
+    public void Scroll(int delta)
+    {
+        Scrolled?.Invoke(delta);
+    }
+}
+
+public interface IClickable : IInteractive<ClickEvent>;
+public interface IClickDraggable : IInteractive<ClickDragEvent>;
+public interface IScrollable : IInteractive<ScrollEvent>;
+public interface IHoverable : IInteractive<HoverEvent>;
+
+public interface IInteractive<out E> where E : HoverEvent
 {
     RectangleF InteractionArea { get; }
-    bool IsHovering { get; set; }
+    E InputEvent { get; }
 }
 
 /// <summary>
@@ -120,7 +175,7 @@ public class InputContext(ILayerView layerView) : IInputContext
     readonly List<IHoverable> _hoverables = [];
 
     // Only one of the clickables, click-draggables, or hoverables can be hovered at a time
-    IHoverable? _hovered = null;
+    IInteractive<HoverEvent>? _hovered = null;
 
     // Only one scrollable can be hovered at a time, independent of the other hoverables
     IScrollable? _hoveredScrollable = null;
@@ -220,15 +275,14 @@ public class InputContext(ILayerView layerView) : IInputContext
         if (_hovered is IClickDraggable clickDraggable)
         {
             _latchedClickDraggable = clickDraggable;
-            _latchedClickDraggable.IsLatched = true;
-            _latchedClickDraggable.OnLatch();
+            _latchedClickDraggable.InputEvent.Latch();
+            _latchedClickDraggable.InputEvent.Drag(layerView.MousePosition);
             inputEvent.LeftClickConsumed = true;
         }
         else if (_hovered is IClickable clickable)
         {
             _latchedClickable = clickable;
-            _latchedClickable.IsLatched = true;
-            _latchedClickable.OnLatch();
+            _latchedClickable.InputEvent.Latch();
             inputEvent.LeftClickConsumed = true;
         }
         else if (DefaultLeftClick != null)
@@ -251,7 +305,7 @@ public class InputContext(ILayerView layerView) : IInputContext
         if (_latchedClickDraggable != null)
         {
             // No need to check if still hovering, latched click-draggables receive all hold events until released
-            _latchedClickDraggable.OnDrag(layerView.MousePosition);
+            _latchedClickDraggable.InputEvent.Drag(layerView.MousePosition);
             inputEvent.LeftClickConsumed = true;
         }
     }
@@ -268,18 +322,13 @@ public class InputContext(ILayerView layerView) : IInputContext
         {
             // Make sure that we are still over the clickable we pressed
             // This allows the user to cancel a click by moving the mouse away before releasing
-            if (_latchedClickable.IsHovering)
-            {
-                _latchedClickable.OnRelease();
-            }
-            _latchedClickable.IsLatched = false;
+            _latchedClickable.InputEvent.Release(fireEvent: _latchedClickable.InputEvent.IsHovering);
             _latchedClickable = null;
             inputEvent.LeftClickConsumed = true;
         }
         else if (_latchedClickDraggable != null)
         {
-            _latchedClickDraggable.IsLatched = false;
-            _latchedClickDraggable.OnRelease();
+            _latchedClickDraggable.InputEvent.Release();
             _latchedClickDraggable = null;
             inputEvent.LeftClickConsumed = true;
         }
@@ -294,7 +343,7 @@ public class InputContext(ILayerView layerView) : IInputContext
 
         if (_hoveredScrollable != null)
         {
-            _hoveredScrollable.OnScroll(delta);
+            _hoveredScrollable.InputEvent.Scroll(delta);
             inputEvent.ScrollConsumed = true;
         }
     }
@@ -335,17 +384,17 @@ public class InputContext(ILayerView layerView) : IInputContext
             if ((_hoveredScrollable == null) && !inputEvent.HoverConsumed && scrollable.InteractionArea.Contains(mousePosition))
             {
                 _hoveredScrollable = scrollable;
-                _hoveredScrollable.IsHovering = true;
+                _hoveredScrollable.InputEvent.IsHovering = true;
                 // Don't consume the hover just yet, because other non-scrollable hoverables may need to be checked
             }
             else
             {
-                scrollable.IsHovering = false;
+                scrollable.InputEvent.IsHovering = false;
             }
         }
     }
 
-    void CheckLatchedHover(IHoverable? hoverable, Vector2 mousePosition, InputEvent inputEvent)
+    void CheckLatchedHover(IInteractive<HoverEvent>? hoverable, Vector2 mousePosition, InputEvent inputEvent)
     {
         if (inputEvent.HoverConsumed && (hoverable != null))
         {
@@ -355,13 +404,18 @@ public class InputContext(ILayerView layerView) : IInputContext
             }
             else
             {
-                hoverable.IsHovering = false;
+                hoverable.InputEvent.IsHovering = false;
             }
             inputEvent.HoverConsumed = true; // Only the latched hoverable can be hovered
         }
     }
 
-    void CheckHoverables(IEnumerable<IHoverable> hoverables, Vector2 mousePosition, InputEvent inputEvent, IHoverable? skip = null)
+    void CheckHoverables(
+        IEnumerable<IInteractive<HoverEvent>> hoverables,
+        Vector2 mousePosition,
+        InputEvent inputEvent,
+        IInteractive<HoverEvent>? skip = null
+    )
     {
         foreach (var hoverable in hoverables)
         {
@@ -375,16 +429,16 @@ public class InputContext(ILayerView layerView) : IInputContext
             }
             else
             {
-                hoverable.IsHovering = false;
+                hoverable.InputEvent.IsHovering = false;
             }
         }
     }
 
-    void ConsumeHover(IHoverable hoverable, InputEvent inputEvent)
+    void ConsumeHover(IInteractive<HoverEvent> hoverable, InputEvent inputEvent)
     {
         Debug.Assert(_hovered == null, "Only one hoverable can be hovered at a time.");
         _hovered = hoverable;
-        hoverable.IsHovering = true;
+        hoverable.InputEvent.IsHovering = true;
         inputEvent.HoverConsumed = true;
     }
 }

@@ -44,7 +44,7 @@ public class VerticalSlider(Texture2D thumbTexture, Texture2D trackTexture, floa
         renderer.SpriteBatch.Draw(_thumbTexture, _thumbDrawPosition, null, Color.White, -MathHelper.PiOver2, Vector2.Zero, 1f, SpriteEffects.None, 0f);
     }
 
-    public override void OnDrag(Vector2 position)
+    protected override void OnDrag(Vector2 position)
     {
         SetValueFromPosition(position.Y - _thumbStopTopY);
     }

@@ -44,7 +44,7 @@ public class HorizontalSlider(Texture2D thumbTexture, Texture2D trackTexture, fl
         renderer.SpriteBatch.Draw(_thumbTexture, _thumbDrawPosition, Color.White);
     }
 
-    public override void OnDrag(Vector2 position)
+    protected override void OnDrag(Vector2 position)
     {
         SetValueFromPosition(position.X - _thumbStopLeftX);
     }
