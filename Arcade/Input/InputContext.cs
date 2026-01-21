@@ -7,7 +7,7 @@ namespace Arcade.Input;
 
 public class HoverEvent
 {
-    public bool IsHovering { get; set; }
+    public bool IsHovered { get; set; }
 }
 
 public class ClickEvent : HoverEvent
@@ -232,8 +232,8 @@ public class InputContext(ILayerView layer) : IInputContext
 
         _latchedClickable?.InputEvent.IsLatched = false;
         _latchedClickDraggable?.InputEvent.IsLatched = false;
-        _hovered?.InputEvent.IsHovering = false;
-        _hoveredScrollable?.InputEvent.IsHovering = false;
+        _hovered?.InputEvent.IsHovered = false;
+        _hoveredScrollable?.InputEvent.IsHovered = false;
         _latchedClickable = null;
         _latchedClickDraggable = null;
         _hovered = null;
@@ -332,7 +332,7 @@ public class InputContext(ILayerView layer) : IInputContext
         {
             // Make sure that we are still over the clickable we pressed
             // This allows the user to cancel a click by moving the mouse away before releasing
-            _latchedClickable.InputEvent.Release(fireEvent: _latchedClickable.InputEvent.IsHovering);
+            _latchedClickable.InputEvent.Release(fireEvent: _latchedClickable.InputEvent.IsHovered);
             _latchedClickable = null;
             inputEvent.LeftClickConsumed = true;
         }
@@ -360,8 +360,8 @@ public class InputContext(ILayerView layer) : IInputContext
 
     public void HandleHover(InputEvent inputEvent)
     {
-        _hovered?.InputEvent.IsHovering = false;
-        _hoveredScrollable?.InputEvent.IsHovering = false;
+        _hovered?.InputEvent.IsHovered = false;
+        _hoveredScrollable?.InputEvent.IsHovered = false;
         _hovered = null;
         _hoveredScrollable = null;
         var mousePosition = layer.MousePosition;
@@ -396,7 +396,7 @@ public class InputContext(ILayerView layer) : IInputContext
             if (!inputEvent.HoverConsumed && scrollable.InteractionArea.Contains(mousePosition))
             {
                 _hoveredScrollable = scrollable;
-                _hoveredScrollable.InputEvent.IsHovering = true;
+                _hoveredScrollable.InputEvent.IsHovered = true;
                 // Don't consume the hover just yet, because other non-scrollable hoverables may need to be checked
                 return;
             }
@@ -435,7 +435,7 @@ public class InputContext(ILayerView layer) : IInputContext
     {
         Debug.Assert(_hovered == null, "Only one hoverable can be hovered at a time.");
         _hovered = hoverable;
-        hoverable.InputEvent.IsHovering = true;
+        hoverable.InputEvent.IsHovered = true;
         inputEvent.HoverConsumed = true;
     }
 }

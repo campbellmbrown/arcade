@@ -190,9 +190,6 @@ public abstract class Widget : IWidget
         {
             renderer.SpriteBatch.DrawRectangle(new RectangleF(Position.X, Position.Y, Width, Height), BorderColor.Value, BorderThickness);
         }
-        // Uncomment for debugging layout
-        // renderer.SpriteBatch.DrawRectangle(new RectangleF(Position.X - MarginLeft, Position.Y - MarginTop, OccupiedWidth, OccupiedHeight), Color.Red * 0.5f, 1);
-        // renderer.SpriteBatch.DrawPoint(Position, Color.Yellow, 1);
     }
 
     /// <summary>
