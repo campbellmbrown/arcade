@@ -25,8 +25,8 @@ public interface IDrawService
 
     DrawType DrawType { get; }
 
-    ILayerView GuiLayerView { get; }
-    ILayerView WorldLayerView { get; }
+    ILayerView GuiLayer { get; }
+    ILayerView WorldLayer { get; }
 }
 
 public class DrawService : IDrawService
@@ -36,8 +36,8 @@ public class DrawService : IDrawService
 
     public DrawType DrawType { get; private set; }
 
-    public ILayerView GuiLayerView { get; private set; }
-    public ILayerView WorldLayerView { get; private set; }
+    public ILayerView GuiLayer { get; private set; }
+    public ILayerView WorldLayer { get; private set; }
 
     /* Render targets
     *
@@ -92,8 +92,8 @@ public class DrawService : IDrawService
         _lightRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
 #endif
 
-        GuiLayerView = new LayerView(_graphicsDevice, window, zoom: 2);
-        WorldLayerView = new LayerView(_graphicsDevice, window, zoom: 4);
+        GuiLayer = new LayerView(_graphicsDevice, window, zoom: 2);
+        WorldLayer = new LayerView(_graphicsDevice, window, zoom: 4);
 
 #if LIGHT_EFFECT
         _lightingEffect = content.Load<Effect>("effects/lighting");
@@ -108,20 +108,20 @@ public class DrawService : IDrawService
             case DrawType.Gui:
                 _graphicsDevice.SetRenderTarget(_guiRenderTarget);
                 _graphicsDevice.Clear(Color.Transparent);
-                _renderer.CurrentLayer = GuiLayerView;
-                _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, transformMatrix: GuiLayerView.Camera.GetViewMatrix());
+                _renderer.CurrentLayer = GuiLayer;
+                _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, transformMatrix: GuiLayer.Camera.GetViewMatrix());
                 break;
             case DrawType.World:
                 _graphicsDevice.SetRenderTarget(_worldRenderTarget);
                 _graphicsDevice.Clear(Color.Transparent);
-                _renderer.CurrentLayer = WorldLayerView;
-                _renderer.SpriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, transformMatrix: WorldLayerView.Camera.GetViewMatrix());
+                _renderer.CurrentLayer = WorldLayer;
+                _renderer.SpriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, transformMatrix: WorldLayer.Camera.GetViewMatrix());
                 break;
             case DrawType.WorldNoEffects:
                 _graphicsDevice.SetRenderTarget(_worldNoEffectsRenderTarget);
                 _graphicsDevice.Clear(Color.Transparent);
-                _renderer.CurrentLayer = WorldLayerView;
-                _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, transformMatrix: WorldLayerView.Camera.GetViewMatrix());
+                _renderer.CurrentLayer = WorldLayer;
+                _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, transformMatrix: WorldLayer.Camera.GetViewMatrix());
                 break;
 #if LIGHT_EFFECT
             case DrawType.Light:
@@ -145,7 +145,7 @@ public class DrawService : IDrawService
             _renderer.SpriteBatch.End();
             _graphicsDevice.SetRenderTarget(_lightRenderTarget);
             _graphicsDevice.Clear(Color.Black);
-            _renderer.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.Additive, SamplerState.PointClamp, transformMatrix: WorldLayerView.Camera.GetViewMatrix());
+            _renderer.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.Additive, SamplerState.PointClamp, transformMatrix: WorldLayer.Camera.GetViewMatrix());
 
             while (_renderer.HasLights)
             {
@@ -189,7 +189,7 @@ public class DrawService : IDrawService
         _lightRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
 #endif
 
-        GuiLayerView.WindowResized();
-        WorldLayerView.WindowResized();
+        GuiLayer.WindowResized();
+        WorldLayer.WindowResized();
     }
 }

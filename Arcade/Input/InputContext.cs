@@ -162,7 +162,7 @@ public interface IInputContext
     Action<Vector2>? DefaultLeftClick { get; set; }
 }
 
-public class InputContext(ILayerView layerView) : IInputContext
+public class InputContext(ILayerView layer) : IInputContext
 {
     Action<Vector2>? _onPanStart;
     Action<Vector2>? _onPan;
@@ -251,7 +251,7 @@ public class InputContext(ILayerView layerView) : IInputContext
         {
             return;
         }
-        _panPosition = layerView.MousePosition;
+        _panPosition = layer.MousePosition;
         _onPanStart?.Invoke(_panPosition);
     }
 
@@ -261,7 +261,7 @@ public class InputContext(ILayerView layerView) : IInputContext
         {
             return;
         }
-        var delta = layerView.MousePosition - _panPosition;
+        var delta = layer.MousePosition - _panPosition;
         _onPan?.Invoke(delta);
     }
 
@@ -271,7 +271,7 @@ public class InputContext(ILayerView layerView) : IInputContext
         {
             return;
         }
-        var delta = layerView.MousePosition - _panPosition;
+        var delta = layer.MousePosition - _panPosition;
         _onPanEnd?.Invoke(delta);
     }
 
@@ -286,7 +286,7 @@ public class InputContext(ILayerView layerView) : IInputContext
         {
             _latchedClickDraggable = clickDraggable;
             _latchedClickDraggable.InputEvent.Latch();
-            _latchedClickDraggable.InputEvent.Drag(layerView.MousePosition);
+            _latchedClickDraggable.InputEvent.Drag(layer.MousePosition);
             inputEvent.LeftClickConsumed = true;
         }
         else if (_hovered is IClickable clickable)
@@ -300,7 +300,7 @@ public class InputContext(ILayerView layerView) : IInputContext
             // No clickable or draggable consumed the click, invoke the default left click action.
             // Note: this means that if the top layer context has a default left click action, it will
             // always consume the event, and no lower layer context will ever receive it.
-            DefaultLeftClick(layerView.MousePosition);
+            DefaultLeftClick(layer.MousePosition);
             inputEvent.LeftClickConsumed = true;
         }
     }
@@ -315,7 +315,7 @@ public class InputContext(ILayerView layerView) : IInputContext
         if (_latchedClickDraggable != null)
         {
             // No need to check if still hovering, latched click-draggables receive all hold events until released
-            _latchedClickDraggable.InputEvent.Drag(layerView.MousePosition);
+            _latchedClickDraggable.InputEvent.Drag(layer.MousePosition);
             inputEvent.LeftClickConsumed = true;
         }
     }
@@ -364,7 +364,7 @@ public class InputContext(ILayerView layerView) : IInputContext
         _hoveredScrollable?.InputEvent.IsHovering = false;
         _hovered = null;
         _hoveredScrollable = null;
-        var mousePosition = layerView.MousePosition;
+        var mousePosition = layer.MousePosition;
 
         // First, check the scrollables. Only one of these can be hovered (if the hover event wasn't already consumed)
         // This does not consume the hover event, so other hoverables can still be checked

@@ -22,7 +22,7 @@ public interface IGuiService : IVisual, IFrameTickable
     void SetCentralWidget(IWidget widget);
 }
 
-public class GuiService(ILayerView layerView) : IGuiService
+public class GuiService(ILayerView layer) : IGuiService
 {
     IWidget? _centralWidget = null;
 
@@ -33,7 +33,7 @@ public class GuiService(ILayerView layerView) : IGuiService
 
     public void FrameTick(IFrameTickService frameTickService)
     {
-        _centralWidget?.Update(layerView.Origin, (int)layerView.Size.X, (int)layerView.Size.Y);
+        _centralWidget?.Update(layer.Origin, (int)layer.Size.X, (int)layer.Size.Y);
         _centralWidget?.FrameTick(frameTickService);
     }
 

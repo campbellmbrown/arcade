@@ -8,11 +8,11 @@ namespace Arcade.Visual;
 public interface IRenderer
 {
     SpriteBatch SpriteBatch { get; }
-    ILayerView CurrentLayer { set; }
+    ILayerView? CurrentLayer { get; set; }
     Queue<LightTexture> LightQueue { get; }
     bool HasLights { get; }
 
-    void QueueLight(Texture2D texture2D, Vector2 position, Color color, float scale = 1f, float opacity = 1f);
+    void QueueLight(Texture2D texture, Vector2 position, Color color, float scale = 1f, float opacity = 1f);
 
     void DrawBounds(RectangleF bounds);
 }
@@ -24,7 +24,7 @@ public class LightTexture(Texture2D texture, Vector2 position, Color color, floa
     public Texture2D Texture { get; } = texture;
     public float Scale { get; } = scale;
     public float Opacity { get; } = opacity;
-    public Vector2 RotationOrigin = new(texture.Width / 2f, texture.Height / 2f);
+    public Vector2 RotationOrigin { get; } = new(texture.Width / 2f, texture.Height / 2f);
 }
 
 public class Renderer(SpriteBatch spriteBatch) : IRenderer
@@ -34,7 +34,7 @@ public class Renderer(SpriteBatch spriteBatch) : IRenderer
     public Queue<LightTexture> LightQueue { get; } = new();
     public bool HasLights => LightQueue.Count > 0;
 
-    public ILayerView? CurrentLayer { private get; set; }
+    public ILayerView? CurrentLayer { get; set; }
 
     /// <summary>
     /// Queue a light to be drawn.

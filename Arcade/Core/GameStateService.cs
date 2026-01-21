@@ -4,8 +4,8 @@ using Arcade.Visual;
 namespace Arcade.Core;
 
 public class GameStateService<TStateId>(
-    IDrawService drawService,
-    IInputServiceGeneric _input,
+    IDrawService draw,
+    IInputServiceGeneric input,
     TStateId defaultStateId
 ) : IVisual, IFrameTickable
     where TStateId : struct, Enum
@@ -52,7 +52,7 @@ public class GameStateService<TStateId>(
         var requestedState = _stateSwitch.GetRequestedState();
         if (requestedState.HasValue)
         {
-            _input.TearDown();
+            input.TearDown();
             _stateId = requestedState.Value.StateId;
             _states[_stateId].Enter(requestedState.Value.Parameter);
         }
@@ -65,8 +65,8 @@ public class GameStateService<TStateId>(
             throw new InvalidOperationException("Setup is not complete");
         }
 
-        drawService.Start(DrawType.Gui);
+        draw.Start(DrawType.Gui);
         _states[_stateId].Draw(renderer);
-        drawService.Finish();
+        draw.Finish();
     }
 }

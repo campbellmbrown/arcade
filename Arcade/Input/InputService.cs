@@ -58,7 +58,7 @@ public interface IInputService<TControl> : IInputServiceGeneric, IFrameTickable 
     bool IsHoveringAnyContext { get; }
 }
 
-public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLayerView) : IInputService<TControl> where TControl : Enum
+public class InputService<TControl>(ILayerView guiLayer, ILayerView worldLayer) : IInputService<TControl> where TControl : Enum
 {
     public record KeyBinding(Keys Key, KeyModifiers Modifiers);
 
@@ -79,8 +79,8 @@ public class InputService<TControl>(ILayerView guiLayerView, ILayerView worldLay
     ButtonState _previousMiddleButtonState = ButtonState.Released;
     int _previousScrollValue = 0;
 
-    public IInputContext Gui { get; } = new InputContext(guiLayerView);
-    public IInputContext World { get; } = new InputContext(worldLayerView);
+    public IInputContext Gui { get; } = new InputContext(guiLayer);
+    public IInputContext World { get; } = new InputContext(worldLayer);
 
     public bool IsHoveringAnyContext { get; private set; } = false;
 
