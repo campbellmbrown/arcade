@@ -1,4 +1,8 @@
 Welcome to Arcade's Documentation!
 ==================================
 
-Documentation coming soon...
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   contents/contribution_guide

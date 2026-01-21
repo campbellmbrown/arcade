@@ -1,16 +1,12 @@
 # Auto detect text files and perform LF normalization
-*          text=auto eol=lf
+*          text=auto
 
-*.cs       text diff=csharp
-*.cshtml   text diff=html
-*.csx      text diff=csharp
+*.cs       text eol=lf diff=csharp
+*.cshtml   text eol=lf diff=html
+*.csx      text eol=lf diff=csharp
 *.sln      text eol=crlf
 *.slnx     text eol=crlf
 *.csproj   text eol=crlf
-
-#
-# The above will handle all files NOT found below
-#
 
 # Documents
 *.bibtex   text diff=bibtex
