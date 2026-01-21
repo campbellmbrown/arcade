@@ -15,7 +15,7 @@ public enum DrawType
 #endif
 }
 
-public interface IDrawController
+public interface IDrawService
 {
     void Start(DrawType drawType);
     void Switch(DrawType drawType);
@@ -29,7 +29,7 @@ public interface IDrawController
     ILayerView WorldLayerView { get; }
 }
 
-public class DrawController : IDrawController
+public class DrawService : IDrawService
 {
     readonly GraphicsDevice _graphicsDevice;
     readonly IRenderer _renderer;
@@ -79,7 +79,7 @@ public class DrawController : IDrawController
     readonly Effect _lightingEffect;
 #endif
 
-    public DrawController(ContentManager content, GraphicsDevice graphicsDevice, GameWindow window, IRenderer renderer)
+    public DrawService(ContentManager content, GraphicsDevice graphicsDevice, GameWindow window, IRenderer renderer)
     {
         _graphicsDevice = graphicsDevice;
         _renderer = renderer;

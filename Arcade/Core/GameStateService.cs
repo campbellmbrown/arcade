@@ -4,7 +4,7 @@ using Arcade.Visual;
 namespace Arcade.Core;
 
 public class GameStateService<TStateId>(
-    IDrawController drawController,
+    IDrawService drawService,
     IInputServiceGeneric _input,
     TStateId defaultStateId
 ) : IVisual, IFrameTickable
@@ -65,8 +65,8 @@ public class GameStateService<TStateId>(
             throw new InvalidOperationException("Setup is not complete");
         }
 
-        drawController.Start(DrawType.Gui);
+        drawService.Start(DrawType.Gui);
         _states[_stateId].Draw(renderer);
-        drawController.Finish();
+        drawService.Finish();
     }
 }
