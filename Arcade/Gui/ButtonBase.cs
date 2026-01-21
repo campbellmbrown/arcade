@@ -5,13 +5,37 @@ using MonoGame.Extended;
 
 namespace Arcade.Gui;
 
-public abstract class ButtonBase : Widget, IClickable
+public interface IButton : IClickable
+{
+    bool IsCheckable { get; set; }
+    bool IsChecked { get; set; }
+
+    Color HoverBackgroundColor { get; set; }
+    Color SelectedBackgroundColor { get; set; }
+
+    event Action<bool>? CheckedChanged;
+}
+
+public abstract class ButtonBase : Widget, IButton
 {
     public RectangleF InteractionArea => new(Position, new Size2(Width, Height));
     public ClickEvent InputEvent { get; } = new();
 
     public bool IsCheckable { get; set; } = false;
-    public bool IsChecked { get; private set; } = false;
+
+    bool _isChecked = false;
+    public bool IsChecked
+    {
+        get => _isChecked;
+        set
+        {
+            if (_isChecked != value)
+            {
+                _isChecked = value;
+                CheckedChanged?.Invoke(_isChecked);
+            }
+        }
+    }
 
     public Color HoverBackgroundColor { get; set; } = Color.White * 0.25f;
     public Color SelectedBackgroundColor { get; set; } = Color.White * 0.5f;
@@ -21,32 +45,6 @@ public abstract class ButtonBase : Widget, IClickable
     protected ButtonBase()
     {
         InputEvent.Released += OnRelease;
-    }
-
-    public void Check(bool raiseEvent = true)
-    {
-        ChangeChecked(true, raiseEvent);
-    }
-
-    public void Uncheck(bool raiseEvent = true)
-    {
-        ChangeChecked(false, raiseEvent);
-    }
-
-    public void ChangeChecked(bool isChecked, bool raiseEvent = true)
-    {
-        if (!IsCheckable)
-        {
-            return;
-        }
-        if (IsChecked != isChecked)
-        {
-            IsChecked = isChecked;
-            if (raiseEvent)
-            {
-                CheckedChanged?.Invoke(IsChecked);
-            }
-        }
     }
 
     public override void Draw(IRenderer renderer)
@@ -85,7 +83,7 @@ public abstract class ButtonBase : Widget, IClickable
     {
         if (IsCheckable)
         {
-            ChangeChecked(!IsChecked);
+            IsChecked = !IsChecked;
         }
     }
 }

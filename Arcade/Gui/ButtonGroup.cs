@@ -2,9 +2,11 @@ namespace Arcade.Gui;
 
 public class ButtonGroup
 {
-    readonly List<ButtonBase> buttons = [];
+    readonly List<IButton> buttons = [];
 
     public bool RequireSelection { get; private set; } = false;
+
+    bool _transitioning = false;
 
     /// <summary>
     /// Create a new button group.
@@ -12,7 +14,7 @@ public class ButtonGroup
     /// <exception cref="ArgumentException">Thrown when <paramref name="requireSelection"/> is true but no <paramref name="initialSelection"/> is provided.</exception>
     /// <param name="requireSelection">Whether at least one button must be selected at all times.</param>
     /// <param name="initialSelection">The button to be initially selected. This button will be added to the group.</param>
-    public ButtonGroup(bool requireSelection = false, ButtonBase? initialSelection = null)
+    public ButtonGroup(bool requireSelection = false, IButton? initialSelection = null)
     {
         RequireSelection = requireSelection;
         if (RequireSelection && initialSelection == null)
@@ -22,7 +24,7 @@ public class ButtonGroup
         if (initialSelection != null)
         {
             Add(initialSelection);
-            initialSelection.Check(raiseEvent: false);
+            initialSelection.IsChecked = true;
         }
     }
 
@@ -30,38 +32,72 @@ public class ButtonGroup
     /// Add a button to the group.
     /// </summary>
     /// <remarks>
-    /// The button's <see cref="ButtonBase.IsCheckable"/> property will be set to true.
+    /// The button's <see cref="IButton.IsCheckable"/> property will be set to true.
     /// </remarks>
     /// <param name="button"></param>
-    public void Add(ButtonBase button)
+    public void Add(IButton button)
     {
-        if (!buttons.Contains(button))
+        if (buttons.Contains(button))
         {
-            button.IsCheckable = true;
-            button.CheckedChanged += isChecked => OnButtonCheckedChanged(button, isChecked);
-            buttons.Add(button);
+            return;
         }
-    }
 
-    void OnButtonCheckedChanged(ButtonBase changedButton, bool isChecked)
-    {
-        if (isChecked)
+        // If the new button is checked and any other button is already checked, uncheck the others
+        if (button.IsChecked)
         {
-            // Uncheck all other buttons
-            foreach (var button in buttons)
+            _transitioning = true;
+            try
             {
-                if (button != changedButton && button.IsChecked)
+                foreach (var other in buttons)
                 {
-                    // Don't raise the event to avoid recursion
-                    button.Uncheck(raiseEvent: false);
+                    if (other.IsChecked)
+                    {
+                        other.IsChecked = false;
+                    }
                 }
             }
+            finally
+            {
+                _transitioning = false;
+            }
         }
-        else if (RequireSelection)
+
+        button.IsCheckable = true;
+        buttons.Add(button);
+        button.CheckedChanged += isChecked => OnButtonCheckedChanged(button, isChecked);
+    }
+
+    void OnButtonCheckedChanged(IButton changedButton, bool isChecked)
+    {
+        if (_transitioning)
         {
-            // Revert the change to ensure at least one button remains selected
-            // Don't raise the event to avoid recursion
-            changedButton.Check(raiseEvent: false);
+            // The change was triggered by me, ignore to avoid recursion
+            return;
+        }
+
+        _transitioning = true;
+        try
+        {
+            if (isChecked)
+            {
+                // Uncheck all other buttons
+                foreach (var button in buttons)
+                {
+                    if (button != changedButton && button.IsChecked)
+                    {
+                        button.IsChecked = false;
+                    }
+                }
+            }
+            else if (RequireSelection)
+            {
+                // Revert the change to ensure at least one button remains selected
+                changedButton.IsChecked = true;
+            }
+        }
+        finally
+        {
+            _transitioning = false;
         }
     }
 }
