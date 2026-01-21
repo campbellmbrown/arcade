@@ -15,7 +15,7 @@ public enum DrawType
 #endif
 }
 
-public interface ISpriteBatchService
+public interface IDrawController
 {
     void Start(DrawType drawType);
     void Switch(DrawType drawType);
@@ -29,7 +29,7 @@ public interface ISpriteBatchService
     ILayerView WorldLayerView { get; }
 }
 
-public class SpriteBatchService : ISpriteBatchService
+public class DrawController : IDrawController
 {
     readonly GraphicsDevice _graphicsDevice;
     readonly IRenderer _renderer;
@@ -79,7 +79,7 @@ public class SpriteBatchService : ISpriteBatchService
     readonly Effect _lightingEffect;
 #endif
 
-    public SpriteBatchService(ContentManager content, GraphicsDevice graphicsDevice, GameWindow window, IRenderer renderer)
+    public DrawController(ContentManager content, GraphicsDevice graphicsDevice, GameWindow window, IRenderer renderer)
     {
         _graphicsDevice = graphicsDevice;
         _renderer = renderer;

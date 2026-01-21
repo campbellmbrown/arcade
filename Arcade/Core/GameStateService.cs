@@ -4,8 +4,8 @@ using Arcade.Visual;
 namespace Arcade.Core;
 
 public class GameStateService<TStateId>(
+    IDrawController drawController,
     IInputServiceGeneric _input,
-    ISpriteBatchService spriteBatchService,
     TStateId defaultStateId
 ) : IVisual, IFrameTickable
     where TStateId : struct, Enum
@@ -65,8 +65,8 @@ public class GameStateService<TStateId>(
             throw new InvalidOperationException("Setup is not complete");
         }
 
-        spriteBatchService.Start(DrawType.Gui);
+        drawController.Start(DrawType.Gui);
         _states[_stateId].Draw(renderer);
-        spriteBatchService.Finish();
+        drawController.Finish();
     }
 }
