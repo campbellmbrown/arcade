@@ -1,6 +1,6 @@
 using Arcade.Utility;
+using Arcade.Visual;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 
@@ -49,16 +49,14 @@ public class LayerView : ILayerView
     const float MINIMUM_ZOOM = 0.5f;
     const float MAXIMUM_ZOOM = 100f;
 
-    readonly GraphicsDevice _graphicsDevice;
-    readonly GameWindow _window;
+    readonly IRenderContext _context;
 
-    public LayerView(GraphicsDevice graphicsDevice, GameWindow window, float zoom)
+    public LayerView(IRenderContext renderContext, float zoom)
     {
-        _graphicsDevice = graphicsDevice;
-        _window = window;
+        _context = renderContext;
 
         // Each layer has a different camera because they can have different positions/zooms.
-        Camera = new OrthographicCamera(graphicsDevice)
+        Camera = new OrthographicCamera(renderContext.GraphicsDevice)
         {
             MinimumZoom = MINIMUM_ZOOM,
             MaximumZoom = MAXIMUM_ZOOM,
@@ -68,7 +66,7 @@ public class LayerView : ILayerView
 
     public OrthographicCamera Camera { get; private set; }
     public Vector2 Origin => Camera.ScreenToWorld(Vector2.Zero);
-    public Vector2 Size => new Vector2(_window.ClientBounds.Width, _window.ClientBounds.Height) / Camera.Zoom;
+    public Vector2 Size => new Vector2(_context.Window.ClientBounds.Width, _context.Window.ClientBounds.Height) / Camera.Zoom;
     public Vector2 Center => Camera.Center;
     public Vector2 MousePosition
     {
@@ -118,7 +116,7 @@ public class LayerView : ILayerView
     public void WindowResized()
     {
         var previousCenter = Camera.Center;
-        Camera = new OrthographicCamera(_graphicsDevice)
+        Camera = new OrthographicCamera(_context.GraphicsDevice)
         {
             MinimumZoom = MINIMUM_ZOOM,
             MaximumZoom = MAXIMUM_ZOOM,

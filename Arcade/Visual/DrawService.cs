@@ -79,9 +79,9 @@ public class DrawService : IDrawService
     readonly Effect _lightingEffect;
 #endif
 
-    public DrawService(ContentManager content, GraphicsDevice graphicsDevice, GameWindow window, IRenderer renderer)
+    public DrawService(ContentManager content, IRenderContext renderContext, IRenderer renderer)
     {
-        _graphicsDevice = graphicsDevice;
+        _graphicsDevice = renderContext.GraphicsDevice;
         _renderer = renderer;
 
         PresentationParameters pp = _graphicsDevice.PresentationParameters;
@@ -92,8 +92,8 @@ public class DrawService : IDrawService
         _lightRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
 #endif
 
-        GuiLayer = new LayerView(_graphicsDevice, window, zoom: 2);
-        WorldLayer = new LayerView(_graphicsDevice, window, zoom: 4);
+        GuiLayer = new LayerView(renderContext, zoom: 2);
+        WorldLayer = new LayerView(renderContext, zoom: 4);
 
 #if LIGHT_EFFECT
         _lightingEffect = content.Load<Effect>("effects/lighting");
