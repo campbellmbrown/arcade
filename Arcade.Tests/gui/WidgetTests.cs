@@ -1,5 +1,7 @@
 using Arcade.Gui;
+
 using Microsoft.Xna.Framework;
+
 using NUnit.Framework;
 
 namespace Arcade.Tests.Gui;
@@ -49,10 +51,10 @@ public class WidgetTests
         WidgetImplementation widget;
 
         // Act
-        void act() => widget = new() { Alignment = alignment };
+        void Act() => widget = new() { Alignment = alignment };
 
         // Assert
-        Assert.Throws<ArgumentException>(act);
+        Assert.Throws<ArgumentException>(Act);
     }
 
     const int AVAILABLE_WIDTH = 10;
