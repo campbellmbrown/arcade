@@ -10,7 +10,9 @@ public enum DrawType
     Gui,
     Main,
     MainNoEffects,
+#if LIGHT_EFFECT
     Light,
+#endif
 }
 
 public interface ISpriteBatchService
@@ -64,14 +66,18 @@ public class SpriteBatchService : ISpriteBatchService
     /// </summary>
     RenderTarget2D _mainNoEffectsRenderTarget;
 
+#if LIGHT_EFFECT
     /// <summary>
     /// A special render target for drawing lights for the main content target.
     /// This render target will be an input to the light effect.
     /// </summary>
     RenderTarget2D _lightRenderTarget;
+#endif
 
+#if LIGHT_EFFECT
     // Effects
     readonly Effect _lightingEffect;
+#endif
 
     public SpriteBatchService(ContentManager content, GraphicsDevice graphicsDevice, GameWindow window, IRenderer renderer)
     {
@@ -82,12 +88,16 @@ public class SpriteBatchService : ISpriteBatchService
         _guiRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
         _mainRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
         _mainNoEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
+#if LIGHT_EFFECT
         _lightRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
+#endif
 
         GuiLayerView = new LayerView(_graphicsDevice, window, zoom: 2);
         MainLayerView = new LayerView(_graphicsDevice, window, zoom: 4);
 
+#if LIGHT_EFFECT
         _lightingEffect = content.Load<Effect>("effects/lighting");
+#endif
     }
 
     public void Start(DrawType drawType)
@@ -113,8 +123,10 @@ public class SpriteBatchService : ISpriteBatchService
                 _renderer.CurrentLayer = MainLayerView;
                 _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, transformMatrix: MainLayerView.Camera.GetViewMatrix());
                 break;
+#if LIGHT_EFFECT
             case DrawType.Light:
                 throw new InvalidOperationException("The light target cannot be switched to.");
+#endif
         }
     }
 
@@ -126,6 +138,7 @@ public class SpriteBatchService : ISpriteBatchService
 
     public void Finish()
     {
+#if LIGHT_EFFECT
         // (1) Draw lights to the light target.
         if (_renderer.HasLights)
         {
@@ -140,19 +153,27 @@ public class SpriteBatchService : ISpriteBatchService
                 _renderer.SpriteBatch.Draw(light.Texture, light.Position, null, light.Color * light.Opacity, 0f, light.RotationOrigin, light.Scale, SpriteEffects.None, 0f);
             }
         }
+#endif
         _renderer.SpriteBatch.End();
 
         _graphicsDevice.SetRenderTarget(null);
         _graphicsDevice.Clear(Color.Black);
 
+#if LIGHT_EFFECT
         // (2) Draw the main content to the back buffer with the point light as a mask.
         _lightingEffect.Parameters["lightMask"].SetValue(_lightRenderTarget);
-        _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, effect: _lightingEffect);
+        var effect = _lightingEffect;
+#else
+        Effect? effect = null;
+#endif
+        _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, effect: effect);
         _renderer.SpriteBatch.Draw(_mainRenderTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
+#if LIGHT_EFFECT
         _renderer.SpriteBatch.End();
 
         // (3) Draw the rest of the targets to the back buffer.
         _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
+#endif
         _renderer.SpriteBatch.Draw(_mainNoEffectsRenderTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
         _renderer.SpriteBatch.Draw(_guiRenderTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
         _renderer.SpriteBatch.End();
@@ -164,7 +185,9 @@ public class SpriteBatchService : ISpriteBatchService
         _guiRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
         _mainRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
         _mainNoEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
+#if LIGHT_EFFECT
         _lightRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
+#endif
 
         GuiLayerView.WindowResized();
         MainLayerView.WindowResized();
