@@ -6,12 +6,16 @@ using NUnit.Framework;
 
 namespace Arcade.Tests.Gui;
 
-class WidgetImplementation : Widget
+class WidgetImplementation(int intrinsicWidth = 0, int intrinsicHeight = 0) : Widget
 {
-    public WidgetImplementation(int width = 0, int height = 0)
+    protected override int IntrinsicHeight()
     {
-        Width = width;
-        Height = height;
+        return intrinsicHeight;
+    }
+
+    protected override int IntrinsicWidth()
+    {
+        return intrinsicWidth;
     }
 }
 

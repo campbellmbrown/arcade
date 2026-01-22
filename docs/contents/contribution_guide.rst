@@ -1,5 +1,17 @@
-C# Formatting
--------------
+Contribution Guide
+==================
+
+Unit Testing
+------------
+
+To run unit tests:
+
+.. code-block:: console
+
+    dotnet test
+
+Formatting
+----------
 
 Run code formatting with the `dotnet format <https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-format>`_ tool
 which is included with the .NET SDK.
