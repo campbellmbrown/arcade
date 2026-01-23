@@ -1,0 +1,44 @@
+name: .NET
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Install .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Format
+      run: dotnet format arcade.sln --verify-no-changes
+
+    - name: Unit tests
+      run: dotnet test arcade.sln --no-restore --configuration Debug
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Install .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Build
+      run: dotnet build Arcade/Arcade.csproj --configuration ${{ matrix.configuration }}
