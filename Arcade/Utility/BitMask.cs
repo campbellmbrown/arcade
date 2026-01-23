@@ -2,14 +2,14 @@ using Arcade.World;
 
 namespace Arcade.Utility;
 
-public class BitMask
+public enum BitMaskType
 {
-    public enum BitMaskType
-    {
-        Bits4,
-        Bits8,
-    }
+    Bits4,
+    Bits8,
+}
 
+public static class BitMask
+{
     static readonly Dictionary<int, int> _8BitRemap = new()
     {
         { 2, 1 },
