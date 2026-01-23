@@ -18,6 +18,7 @@ public interface IButton : IClickable
 
 public abstract class ButtonBase : Widget, IButton
 {
+    public bool IsEnabled { get; set; } = true;
     public RectangleF InteractionArea => new(Position, new Size2(Width, Height));
     public ClickEvent InputEvent { get; } = new();
 
@@ -81,7 +82,7 @@ public abstract class ButtonBase : Widget, IButton
 
     void OnRelease()
     {
-        if (IsCheckable)
+        if (IsCheckable && IsEnabled)
         {
             IsChecked = !IsChecked;
         }

@@ -35,6 +35,7 @@ public abstract class Slider : Widget, IClickDraggable
         }
     }
 
+    public bool IsEnabled { get; set; } = true;
     public RectangleF InteractionArea => new(Position.X, Position.Y, Width, Height);
     public ClickDragEvent InputEvent { get; } = new();
 

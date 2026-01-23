@@ -80,8 +80,11 @@ public interface IHoverable : IInteractive<HoverEvent>;
 
 public interface IInteractive<out E> where E : HoverEvent
 {
+    bool IsEnabled { get; set; }
     RectangleF InteractionArea { get; }
     E InputEvent { get; }
+
+    public bool Contains(Vector2 position) => IsEnabled && InteractionArea.Contains(position);
 }
 
 /// <summary>
@@ -314,9 +317,17 @@ public class InputContext(ILayerView layer) : IInputContext
 
         if (_latchedClickDraggable != null)
         {
-            // No need to check if still hovering, latched click-draggables receive all hold events until released
-            _latchedClickDraggable.InputEvent.Drag(layer.MousePosition);
-            inputEvent.LeftClickConsumed = true;
+            if (!_latchedClickDraggable.IsEnabled)
+            {
+                _latchedClickDraggable.InputEvent.Release(fireEvent: false);
+                _latchedClickDraggable = null;
+            }
+            else
+            {
+                // No need to check if still hovering, latched click-draggables receive all hold events until released
+                _latchedClickDraggable.InputEvent.Drag(layer.MousePosition);
+                inputEvent.LeftClickConsumed = true;
+            }
         }
     }
 
@@ -332,15 +343,16 @@ public class InputContext(ILayerView layer) : IInputContext
         {
             // Make sure that we are still over the clickable we pressed
             // This allows the user to cancel a click by moving the mouse away before releasing
-            _latchedClickable.InputEvent.Release(fireEvent: _latchedClickable.InputEvent.IsHovered);
+            bool fireEvent = _latchedClickable.IsEnabled && _latchedClickable.InputEvent.IsHovered;
+            _latchedClickable.InputEvent.Release(fireEvent);
+            inputEvent.LeftClickConsumed = _latchedClickable.IsEnabled;
             _latchedClickable = null;
-            inputEvent.LeftClickConsumed = true;
         }
         else if (_latchedClickDraggable != null)
         {
-            _latchedClickDraggable.InputEvent.Release();
+            _latchedClickDraggable.InputEvent.Release(fireEvent: _latchedClickDraggable.IsEnabled);
+            inputEvent.LeftClickConsumed = _latchedClickDraggable.IsEnabled;
             _latchedClickDraggable = null;
-            inputEvent.LeftClickConsumed = true;
         }
     }
 
@@ -393,7 +405,7 @@ public class InputContext(ILayerView layer) : IInputContext
         {
             // Because we don't consume the hover event for scrollables, we need to make sure only one scrollable
             // can be hovered at a time, hence the _hoveredScrollable check.
-            if (!inputEvent.HoverConsumed && scrollable.InteractionArea.Contains(mousePosition))
+            if (!inputEvent.HoverConsumed && scrollable.Contains(mousePosition))
             {
                 _hoveredScrollable = scrollable;
                 _hoveredScrollable.InputEvent.IsHovered = true;
@@ -407,7 +419,7 @@ public class InputContext(ILayerView layer) : IInputContext
     {
         if (!inputEvent.HoverConsumed && (hoverable != null))
         {
-            if (hoverable.InteractionArea.Contains(mousePosition))
+            if (hoverable.Contains(mousePosition))
             {
                 ConsumeHover(hoverable, inputEvent);
             }
@@ -423,7 +435,7 @@ public class InputContext(ILayerView layer) : IInputContext
         }
         foreach (var hoverable in hoverables)
         {
-            if (!inputEvent.HoverConsumed && hoverable.InteractionArea.Contains(mousePosition))
+            if (!inputEvent.HoverConsumed && hoverable.Contains(mousePosition))
             {
                 ConsumeHover(hoverable, inputEvent);
                 return;
