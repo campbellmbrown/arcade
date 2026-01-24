@@ -82,7 +82,7 @@ public class BitMaskTests
         centerMock.Setup(gtile => gtile.YIdx).Returns(CenterYIdx);
 
         // When:
-        var value = BitMask.FindValue(BitMask.BitMaskType.Bits4, fakeTiles, centerMock.Object);
+        var value = BitMask.FindValue(BitMaskType.Bits4, fakeTiles, centerMock.Object);
 
         // When/then:
         Assert.That(value, Is.EqualTo(expected));
@@ -870,7 +870,7 @@ public class BitMaskTests
         centerMock.Setup(gtile => gtile.YIdx).Returns(CenterYIdx);
 
         // When:
-        var value = BitMask.FindValue(BitMask.BitMaskType.Bits8, fakeTiles, centerMock.Object);
+        var value = BitMask.FindValue(BitMaskType.Bits8, fakeTiles, centerMock.Object);
 
         // When/then:
         Assert.That(value, Is.EqualTo(expected));

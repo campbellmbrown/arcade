@@ -8,6 +8,8 @@ public interface ITile
     int YIdx { get; set; }
     Vector2 Position { get; }
     Vector2 Center { get; }
+
+    bool IsSamePosition(ITile other);
 }
 
 public class Tile(int xIdx, int yIdx) : ITile
@@ -19,4 +21,9 @@ public class Tile(int xIdx, int yIdx) : ITile
 
     public Vector2 Position => Size * new Vector2(XIdx, YIdx);
     public Vector2 Center => Position + new Vector2(Size / 2f);
+
+    public bool IsSamePosition(ITile other)
+    {
+        return (XIdx == other.XIdx) && (YIdx == other.YIdx);
+    }
 }
