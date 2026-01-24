@@ -99,6 +99,12 @@ public interface IInputContext
     void RegisterLeftClickSingleShot(IClickable clickable);
 
     /// <summary>
+    /// Unregisters a clickable from this input context.
+    /// </summary>
+    /// <param name="clickable">The clickable to unregister.</param>
+    void UnregisterLeftClickSingleShot(IClickable clickable);
+
+    /// <summary>
     /// Registers a click-draggable to this input context.
     /// </summary>
     /// <param name="clickDraggable">The click-draggable to register.</param>
@@ -209,6 +215,21 @@ public class InputContext(ILayerView layer) : IInputContext
     public void RegisterLeftClickSingleShot(IClickable clickable)
     {
         _leftClickSingleShots.Add(clickable);
+    }
+
+    public void UnregisterLeftClickSingleShot(IClickable clickable)
+    {
+        _leftClickSingleShots.Remove(clickable);
+        if (_latchedClickable == clickable)
+        {
+            _latchedClickable.InputEvent.IsLatched = false;
+            _latchedClickable = null;
+        }
+        if (_hovered == clickable)
+        {
+            _hovered.InputEvent.IsHovered = false;
+            _hovered = null;
+        }
     }
 
     public void RegisterLeftClickDraggable(IClickDraggable clickDraggable)
