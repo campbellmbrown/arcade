@@ -1,4 +1,5 @@
 using System.Security.Cryptography.X509Certificates;
+
 using Arcade.World;
 
 using Microsoft.Xna.Framework;
@@ -36,7 +37,9 @@ public class TileTests
         // Given
         var tile1 = new Tile(x1, y1);
         var tile2 = new Tile(x2, y2);
+
         // Then
         Assert.That(tile1.IsSamePosition(tile2), Is.EqualTo(expected));
+        Assert.That(tile1.IsSamePosition(x2, y2), Is.EqualTo(expected));
     }
 }

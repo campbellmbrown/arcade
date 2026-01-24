@@ -85,10 +85,10 @@ public static class BitMask
     /// </remarks>
     static int FindValueWith4Bits(IEnumerable<ITile> tiles, ITile tile)
     {
-        bool above = tiles.Any(gs => gs.XIdx == tile.XIdx && gs.YIdx == tile.YIdx - 1);
-        bool right = tiles.Any(gs => gs.XIdx == tile.XIdx + 1 && gs.YIdx == tile.YIdx);
-        bool below = tiles.Any(gs => gs.XIdx == tile.XIdx && gs.YIdx == tile.YIdx + 1);
-        bool left = tiles.Any(gs => gs.XIdx == tile.XIdx - 1 && gs.YIdx == tile.YIdx);
+        bool above = tiles.Any(other => other.IsSamePosition(tile.XIdx, tile.YIdx - 1));
+        bool right = tiles.Any(other => other.IsSamePosition(tile.XIdx + 1, tile.YIdx));
+        bool below = tiles.Any(other => other.IsSamePosition(tile.XIdx, tile.YIdx + 1));
+        bool left = tiles.Any(other => other.IsSamePosition(tile.XIdx - 1, tile.YIdx));
         int val = above ? 1 : 0;
         val += right ? 2 : 0;
         val += below ? 4 : 0;
@@ -113,14 +113,14 @@ public static class BitMask
     /// </remarks>
     private static int FindValueWith8Bits(IEnumerable<ITile> tiles, ITile tile)
     {
-        bool above = tiles.Any(gs => gs.XIdx == tile.XIdx && gs.YIdx == tile.YIdx - 1);
-        bool right = tiles.Any(gs => gs.XIdx == tile.XIdx + 1 && gs.YIdx == tile.YIdx);
-        bool below = tiles.Any(gs => gs.XIdx == tile.XIdx && gs.YIdx == tile.YIdx + 1);
-        bool left = tiles.Any(gs => gs.XIdx == tile.XIdx - 1 && gs.YIdx == tile.YIdx);
-        bool aboveLeft = tiles.Any(gs => gs.XIdx == tile.XIdx - 1 && gs.YIdx == tile.YIdx - 1);
-        bool aboveRight = tiles.Any(gs => gs.XIdx == tile.XIdx + 1 && gs.YIdx == tile.YIdx - 1);
-        bool belowLeft = tiles.Any(gs => gs.XIdx == tile.XIdx - 1 && gs.YIdx == tile.YIdx + 1);
-        bool belowRight = tiles.Any(gs => gs.XIdx == tile.XIdx + 1 && gs.YIdx == tile.YIdx + 1);
+        bool above = tiles.Any(other => other.IsSamePosition(tile.XIdx, tile.YIdx - 1));
+        bool right = tiles.Any(other => other.IsSamePosition(tile.XIdx + 1, tile.YIdx));
+        bool below = tiles.Any(other => other.IsSamePosition(tile.XIdx, tile.YIdx + 1));
+        bool left = tiles.Any(other => other.IsSamePosition(tile.XIdx - 1, tile.YIdx));
+        bool aboveLeft = tiles.Any(other => other.IsSamePosition(tile.XIdx - 1, tile.YIdx - 1));
+        bool aboveRight = tiles.Any(other => other.IsSamePosition(tile.XIdx + 1, tile.YIdx - 1));
+        bool belowLeft = tiles.Any(other => other.IsSamePosition(tile.XIdx - 1, tile.YIdx + 1));
+        bool belowRight = tiles.Any(other => other.IsSamePosition(tile.XIdx + 1, tile.YIdx + 1));
 
         int val = (aboveLeft && above && left) ? 1 : 0;
         val += above ? 2 : 0;
