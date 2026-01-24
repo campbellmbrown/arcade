@@ -1,10 +1,5 @@
-using System.Collections.Generic;
-using System.Linq;
-
 using Arcade.Utility;
 using Arcade.World;
-
-using Moq;
 
 using NUnit.Framework;
 
@@ -76,13 +71,11 @@ public class BitMaskTests
     public void BitMask4(string encodedPattern, int expected)
     {
         // Given:
-        var fakeTiles = GetListFromEncodedPattern(encodedPattern);
-        Mock<ITile> centerMock = new();
-        centerMock.Setup(gtile => gtile.XIdx).Returns(CenterXIdx);
-        centerMock.Setup(gtile => gtile.YIdx).Returns(CenterYIdx);
+        var tiles = GetListFromEncodedPattern(encodedPattern);
+        Tile tile = new(CenterXIdx, CenterYIdx);
 
         // When:
-        var value = BitMask.FindValue(BitMaskType.Bits4, fakeTiles, centerMock.Object);
+        var value = BitMask.FindValue(BitMaskType.Bits4, tiles, tile);
 
         // When/then:
         Assert.That(value, Is.EqualTo(expected));
@@ -864,13 +857,11 @@ public class BitMaskTests
     public void BitMask8(string encodedPattern, int expected)
     {
         // Given:
-        var fakeTiles = GetListFromEncodedPattern(encodedPattern);
-        Mock<ITile> centerMock = new();
-        centerMock.Setup(gtile => gtile.XIdx).Returns(CenterXIdx);
-        centerMock.Setup(gtile => gtile.YIdx).Returns(CenterYIdx);
+        var tiles = GetListFromEncodedPattern(encodedPattern);
+        Tile tile = new(CenterXIdx, CenterYIdx);
 
         // When:
-        var value = BitMask.FindValue(BitMaskType.Bits8, fakeTiles, centerMock.Object);
+        var value = BitMask.FindValue(BitMaskType.Bits8, tiles, tile);
 
         // When/then:
         Assert.That(value, Is.EqualTo(expected));
@@ -881,62 +872,38 @@ public class BitMaskTests
         var withoutWhitespace = new string(encodedPattern.Where(c => !char.IsWhiteSpace(c)).ToArray());
         Assert.That(withoutWhitespace.Length, Is.EqualTo(8));
 
-        List<ITile> fakeTiles = new();
+        List<ITile> fakeTiles = [];
         if (withoutWhitespace[0] == '#')
         {
-            Mock<ITile> gtileMock = new();
-            gtileMock.Setup(gtile => gtile.XIdx).Returns(CenterXIdx - 1);
-            gtileMock.Setup(gtile => gtile.YIdx).Returns(CenterYIdx - 1);
-            fakeTiles.Add(gtileMock.Object);
+            fakeTiles.Add(new Tile(CenterXIdx - 1, CenterYIdx - 1));
         }
         if (withoutWhitespace[1] == '#')
         {
-            Mock<ITile> gtileMock = new();
-            gtileMock.Setup(gtile => gtile.XIdx).Returns(CenterXIdx);
-            gtileMock.Setup(gtile => gtile.YIdx).Returns(CenterYIdx - 1);
-            fakeTiles.Add(gtileMock.Object);
+            fakeTiles.Add(new Tile(CenterXIdx, CenterYIdx - 1));
         }
         if (withoutWhitespace[2] == '#')
         {
-            Mock<ITile> gtileMock = new();
-            gtileMock.Setup(gtile => gtile.XIdx).Returns(CenterXIdx + 1);
-            gtileMock.Setup(gtile => gtile.YIdx).Returns(CenterYIdx - 1);
-            fakeTiles.Add(gtileMock.Object);
+            fakeTiles.Add(new Tile(CenterXIdx + 1, CenterYIdx - 1));
         }
         if (withoutWhitespace[3] == '#')
         {
-            Mock<ITile> gtileMock = new();
-            gtileMock.Setup(gtile => gtile.XIdx).Returns(CenterXIdx - 1);
-            gtileMock.Setup(gtile => gtile.YIdx).Returns(CenterYIdx);
-            fakeTiles.Add(gtileMock.Object);
+            fakeTiles.Add(new Tile(CenterXIdx - 1, CenterYIdx));
         }
         if (withoutWhitespace[4] == '#')
         {
-            Mock<ITile> gtileMock = new();
-            gtileMock.Setup(gtile => gtile.XIdx).Returns(CenterXIdx + 1);
-            gtileMock.Setup(gtile => gtile.YIdx).Returns(CenterYIdx);
-            fakeTiles.Add(gtileMock.Object);
+            fakeTiles.Add(new Tile(CenterXIdx + 1, CenterYIdx));
         }
         if (withoutWhitespace[5] == '#')
         {
-            Mock<ITile> gtileMock = new();
-            gtileMock.Setup(gtile => gtile.XIdx).Returns(CenterXIdx - 1);
-            gtileMock.Setup(gtile => gtile.YIdx).Returns(CenterYIdx + 1);
-            fakeTiles.Add(gtileMock.Object);
+            fakeTiles.Add(new Tile(CenterXIdx - 1, CenterYIdx + 1));
         }
         if (withoutWhitespace[6] == '#')
         {
-            Mock<ITile> gtileMock = new();
-            gtileMock.Setup(gtile => gtile.XIdx).Returns(CenterXIdx);
-            gtileMock.Setup(gtile => gtile.YIdx).Returns(CenterYIdx + 1);
-            fakeTiles.Add(gtileMock.Object);
+            fakeTiles.Add(new Tile(CenterXIdx, CenterYIdx + 1));
         }
         if (withoutWhitespace[7] == '#')
         {
-            Mock<ITile> gtileMock = new();
-            gtileMock.Setup(gtile => gtile.XIdx).Returns(CenterXIdx + 1);
-            gtileMock.Setup(gtile => gtile.YIdx).Returns(CenterYIdx + 1);
-            fakeTiles.Add(gtileMock.Object);
+            fakeTiles.Add(new Tile(CenterXIdx + 1, CenterYIdx + 1));
         }
 
         return fakeTiles;
