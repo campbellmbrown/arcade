@@ -9,34 +9,33 @@ public class CrtEffect : IGameEffect
     const string EffectPath = "Content/effects/crt.mgfxo";
 
     readonly GraphicsDevice _graphicsDevice;
-
-    public Effect Effect { get; }
+    readonly Effect _effect;
 
     public CrtEffect(GraphicsDevice graphicsDevice)
     {
         _graphicsDevice = graphicsDevice;
-        Effect = new Effect(graphicsDevice, File.ReadAllBytes(EffectPath));
-        Effect.Parameters["hardScan"]?.SetValue(-1.0f);
-        Effect.Parameters["hardPix"]?.SetValue(-3.0f);
-        Effect.Parameters["warpX"]?.SetValue(0.031f);
-        Effect.Parameters["warpY"]?.SetValue(0.041f);
-        Effect.Parameters["maskDark"]?.SetValue(0.5f);
-        Effect.Parameters["maskLight"]?.SetValue(1.5f);
-        Effect.Parameters["scaleInLinearGamma"]?.SetValue(1.0f);
-        Effect.Parameters["shadowMask"]?.SetValue(3.0f);
-        Effect.Parameters["brightboost"]?.SetValue(1.0f);
-        Effect.Parameters["hardBloomScan"]?.SetValue(-1.5f);
-        Effect.Parameters["hardBloomPix"]?.SetValue(-2.0f);
-        Effect.Parameters["bloomAmount"]?.SetValue(0.15f);
-        Effect.Parameters["shape"]?.SetValue(2.0f);
+        _effect = new Effect(graphicsDevice, File.ReadAllBytes(EffectPath));
+        _effect.Parameters["hardScan"]?.SetValue(-1.0f);
+        _effect.Parameters["hardPix"]?.SetValue(-3.0f);
+        _effect.Parameters["warpX"]?.SetValue(0.031f);
+        _effect.Parameters["warpY"]?.SetValue(0.041f);
+        _effect.Parameters["maskDark"]?.SetValue(0.5f);
+        _effect.Parameters["maskLight"]?.SetValue(1.5f);
+        _effect.Parameters["scaleInLinearGamma"]?.SetValue(1.0f);
+        _effect.Parameters["shadowMask"]?.SetValue(3.0f);
+        _effect.Parameters["brightboost"]?.SetValue(1.0f);
+        _effect.Parameters["hardBloomScan"]?.SetValue(-1.5f);
+        _effect.Parameters["hardBloomPix"]?.SetValue(-2.0f);
+        _effect.Parameters["bloomAmount"]?.SetValue(0.15f);
+        _effect.Parameters["shape"]?.SetValue(2.0f);
 
         Vector2 size = new(
             graphicsDevice.PresentationParameters.BackBufferWidth,
             graphicsDevice.PresentationParameters.BackBufferHeight
         );
-        Effect.Parameters["textureSize"].SetValue(size);
-        Effect.Parameters["videoSize"].SetValue(size);
-        Effect.Parameters["outputSize"].SetValue(size);
+        _effect.Parameters["textureSize"].SetValue(size);
+        _effect.Parameters["videoSize"].SetValue(size);
+        _effect.Parameters["outputSize"].SetValue(size);
     }
 
     public void ApplyEffect(IRenderer renderer, RenderTarget2D source, RenderTarget2D destination)
@@ -44,8 +43,10 @@ public class CrtEffect : IGameEffect
         _graphicsDevice.SetRenderTarget(destination);
         _graphicsDevice.Clear(Color.Transparent);
 
-        renderer.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, effect: Effect);
+        renderer.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, effect: _effect);
         renderer.SpriteBatch.Draw(source, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
         renderer.SpriteBatch.End();
     }
+
+    // TODO: handle the window resized event
 }

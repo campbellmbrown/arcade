@@ -5,15 +5,16 @@ namespace Arcade.Visual.Effects;
 
 public class LightingEffect(IDrawService drawService, GraphicsDevice graphicsDevice) : IGameEffect
 {
+    // TODO: move to content service
     const string EffectPath = "Content/effects/lighting.mgfxo";
+
+    readonly Effect _effect = new(graphicsDevice, File.ReadAllBytes(EffectPath));
 
     RenderTarget2D _lightRenderTarget = new(
         graphicsDevice,
         graphicsDevice.PresentationParameters.BackBufferWidth,
         graphicsDevice.PresentationParameters.BackBufferHeight
     );
-
-    public Effect Effect { get; } = new(graphicsDevice, File.ReadAllBytes(EffectPath));
 
     public void ApplyEffect(IRenderer renderer, RenderTarget2D source, RenderTarget2D destination)
     {
@@ -32,26 +33,16 @@ public class LightingEffect(IDrawService drawService, GraphicsDevice graphicsDev
             while (renderer.HasLights)
             {
                 var light = renderer.LightQueue.Dequeue();
-                renderer.SpriteBatch.Draw(
-                    light.Texture,
-                    light.Position,
-                    null,
-                    light.Color * light.Opacity,
-                    0f,
-                    light.RotationOrigin,
-                    light.Scale,
-                    SpriteEffects.None,
-                    0f
-                );
+                light.Draw(renderer);
             }
             renderer.SpriteBatch.End();
         }
-        Effect.Parameters["lightMask"].SetValue(_lightRenderTarget);
+        _effect.Parameters["lightMask"].SetValue(_lightRenderTarget);
 
         graphicsDevice.SetRenderTarget(destination);
         graphicsDevice.Clear(Color.Transparent);
 
-        renderer.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, effect: Effect);
+        renderer.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, effect: _effect);
         renderer.SpriteBatch.Draw(source, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
         renderer.SpriteBatch.End();
     }
