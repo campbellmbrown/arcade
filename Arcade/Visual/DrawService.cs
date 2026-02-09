@@ -61,7 +61,7 @@ public class DrawService : IDrawService
     /// </summary>
     RenderTarget2D _worldRenderTarget;
 
-    RenderTarget2D _worldWithEffectsRenderTarget;
+    RenderTarget2D _tmpRenderTarget;
 
     /// <summary>
     /// Render target for the world content without effects.
@@ -76,7 +76,7 @@ public class DrawService : IDrawService
         PresentationParameters pp = _graphicsDevice.PresentationParameters;
         _guiRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
         _worldRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
-        _worldWithEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
+        _tmpRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
         _worldNoEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
 
         GuiLayer = new LayerView(renderContext, zoom: 2);
@@ -125,34 +125,23 @@ public class DrawService : IDrawService
         _renderer.SpriteBatch.End();
 
         // (1) Apply effects to the world render target one by one
-        RenderTarget2D currentTarget = _worldRenderTarget;
+        RenderTarget2D source = _worldRenderTarget;
+        RenderTarget2D destination = _tmpRenderTarget;
+        RenderTarget2D final = _worldRenderTarget; // Assuming no effects
         foreach (var effect in _effects)
         {
-            effect.PrepareEffect();
+            effect.ApplyEffect(_renderer, source, destination);
+            final = destination;
 
-            _graphicsDevice.SetRenderTarget(_worldWithEffectsRenderTarget);
-            _graphicsDevice.Clear(Color.Transparent);
-
-            _renderer.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, effect: effect.Effect);
-            _renderer.SpriteBatch.Draw(currentTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
-            _renderer.SpriteBatch.End();
-
-            // Swap the world render target with the world with effects render target for the next effect
-            if (currentTarget == _worldRenderTarget)
-            {
-                currentTarget = _worldWithEffectsRenderTarget;
-            }
-            else
-            {
-                currentTarget = _worldRenderTarget;
-            }
+            // Swap the render target references for the next effect
+            (source, destination) = (destination, source);
         }
 
         // (2) Draw the world content to the back buffer.
         _graphicsDevice.SetRenderTarget(null);
         _graphicsDevice.Clear(Color.Black);
         _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
-        _renderer.SpriteBatch.Draw(currentTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
+        _renderer.SpriteBatch.Draw(final, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
         _renderer.SpriteBatch.End();
 
         // (3) Draw the rest of the targets to the back buffer.
@@ -167,7 +156,7 @@ public class DrawService : IDrawService
         PresentationParameters pp = _graphicsDevice.PresentationParameters;
         _guiRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
         _worldRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
-        _worldWithEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
+        _tmpRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
         _worldNoEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
 
         GuiLayer.WindowResized();

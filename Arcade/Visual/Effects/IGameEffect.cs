@@ -6,5 +6,5 @@ public interface IGameEffect
 {
     Effect Effect { get; }
 
-    void PrepareEffect();
+    void ApplyEffect(IRenderer renderer, RenderTarget2D source, RenderTarget2D destination);
 }

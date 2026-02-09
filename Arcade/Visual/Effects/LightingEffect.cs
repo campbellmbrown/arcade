@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace Arcade.Visual.Effects;
 
-public class LightingEffect(IDrawService drawService, GraphicsDevice graphicsDevice, IRenderer renderer) : IGameEffect
+public class LightingEffect(IDrawService drawService, GraphicsDevice graphicsDevice) : IGameEffect
 {
     const string EffectPath = "Content/effects/lighting.mgfxo";
 
@@ -15,7 +15,7 @@ public class LightingEffect(IDrawService drawService, GraphicsDevice graphicsDev
 
     public Effect Effect { get; } = new(graphicsDevice, File.ReadAllBytes(EffectPath));
 
-    public void PrepareEffect()
+    public void ApplyEffect(IRenderer renderer, RenderTarget2D source, RenderTarget2D destination)
     {
         graphicsDevice.SetRenderTarget(_lightRenderTarget);
         graphicsDevice.Clear(Color.Black);
@@ -47,6 +47,13 @@ public class LightingEffect(IDrawService drawService, GraphicsDevice graphicsDev
             renderer.SpriteBatch.End();
         }
         Effect.Parameters["lightMask"].SetValue(_lightRenderTarget);
+
+        graphicsDevice.SetRenderTarget(destination);
+        graphicsDevice.Clear(Color.Transparent);
+
+        renderer.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, effect: Effect);
+        renderer.SpriteBatch.Draw(source, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
+        renderer.SpriteBatch.End();
     }
 
     public void WindowResized()
