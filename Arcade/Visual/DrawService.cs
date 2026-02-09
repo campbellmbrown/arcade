@@ -1,6 +1,6 @@
 using Arcade.Core;
+using Arcade.Visual.Effects;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace Arcade.Visual;
@@ -10,13 +10,12 @@ public enum DrawType
     Gui,
     World,
     WorldNoEffects,
-#if LIGHT_EFFECT
-    Light,
-#endif
 }
 
 public interface IDrawService
 {
+    void RegisterEffect(IGameEffect effect);
+
     void Start(DrawType drawType);
     void Switch(DrawType drawType);
     void Finish();
@@ -33,6 +32,7 @@ public class DrawService : IDrawService
 {
     readonly GraphicsDevice _graphicsDevice;
     readonly IRenderer _renderer;
+    readonly List<IGameEffect> _effects = [];
 
     public DrawType DrawType { get; private set; }
 
@@ -61,25 +61,14 @@ public class DrawService : IDrawService
     /// </summary>
     RenderTarget2D _worldRenderTarget;
 
+    RenderTarget2D _worldWithEffectsRenderTarget;
+
     /// <summary>
     /// Render target for the world content without effects.
     /// </summary>
     RenderTarget2D _worldNoEffectsRenderTarget;
 
-#if LIGHT_EFFECT
-    /// <summary>
-    /// A special render target for drawing lights for the world content target.
-    /// This render target will be an input to the light effect.
-    /// </summary>
-    RenderTarget2D _lightRenderTarget;
-#endif
-
-#if LIGHT_EFFECT
-    // Effects
-    readonly Effect _lightingEffect;
-#endif
-
-    public DrawService(ContentManager content, IRenderContext renderContext, IRenderer renderer)
+    public DrawService(IRenderContext renderContext, IRenderer renderer)
     {
         _graphicsDevice = renderContext.GraphicsDevice;
         _renderer = renderer;
@@ -87,17 +76,16 @@ public class DrawService : IDrawService
         PresentationParameters pp = _graphicsDevice.PresentationParameters;
         _guiRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
         _worldRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
+        _worldWithEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
         _worldNoEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
-#if LIGHT_EFFECT
-        _lightRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
-#endif
 
         GuiLayer = new LayerView(renderContext, zoom: 2);
         WorldLayer = new LayerView(renderContext, zoom: 4);
+    }
 
-#if LIGHT_EFFECT
-        _lightingEffect = content.Load<Effect>("effects/lighting");
-#endif
+    public void RegisterEffect(IGameEffect effect)
+    {
+        _effects.Add(effect);
     }
 
     public void Start(DrawType drawType)
@@ -123,10 +111,6 @@ public class DrawService : IDrawService
                 _renderer.CurrentLayer = WorldLayer;
                 _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, transformMatrix: WorldLayer.Camera.GetViewMatrix());
                 break;
-#if LIGHT_EFFECT
-            case DrawType.Light:
-                throw new InvalidOperationException("The light target cannot be switched to.");
-#endif
         }
     }
 
@@ -138,42 +122,41 @@ public class DrawService : IDrawService
 
     public void Finish()
     {
-#if LIGHT_EFFECT
-        // (1) Draw lights to the light target.
-        if (_renderer.HasLights)
-        {
-            _renderer.SpriteBatch.End();
-            _graphicsDevice.SetRenderTarget(_lightRenderTarget);
-            _graphicsDevice.Clear(Color.Black);
-            _renderer.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.Additive, SamplerState.PointClamp, transformMatrix: WorldLayer.Camera.GetViewMatrix());
-
-            while (_renderer.HasLights)
-            {
-                var light = _renderer.LightQueue.Dequeue();
-                _renderer.SpriteBatch.Draw(light.Texture, light.Position, null, light.Color * light.Opacity, 0f, light.RotationOrigin, light.Scale, SpriteEffects.None, 0f);
-            }
-        }
-#endif
         _renderer.SpriteBatch.End();
 
+        // (1) Apply effects to the world render target one by one
+        RenderTarget2D currentTarget = _worldRenderTarget;
+        foreach (var effect in _effects)
+        {
+            effect.PrepareEffect();
+
+            _graphicsDevice.SetRenderTarget(_worldWithEffectsRenderTarget);
+            _graphicsDevice.Clear(Color.Transparent);
+
+            _renderer.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp, effect: effect.Effect);
+            _renderer.SpriteBatch.Draw(currentTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
+            _renderer.SpriteBatch.End();
+
+            // Swap the world render target with the world with effects render target for the next effect
+            if (currentTarget == _worldRenderTarget)
+            {
+                currentTarget = _worldWithEffectsRenderTarget;
+            }
+            else
+            {
+                currentTarget = _worldRenderTarget;
+            }
+        }
+
+        // (2) Draw the world content to the back buffer.
         _graphicsDevice.SetRenderTarget(null);
         _graphicsDevice.Clear(Color.Black);
-
-#if LIGHT_EFFECT
-        // (2) Draw the world content to the back buffer with the point light as a mask.
-        _lightingEffect.Parameters["lightMask"].SetValue(_lightRenderTarget);
-        var effect = _lightingEffect;
-#else
-        Effect? effect = null;
-#endif
-        _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, effect: effect);
-        _renderer.SpriteBatch.Draw(_worldRenderTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
-#if LIGHT_EFFECT
+        _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
+        _renderer.SpriteBatch.Draw(currentTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
         _renderer.SpriteBatch.End();
 
         // (3) Draw the rest of the targets to the back buffer.
         _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
-#endif
         _renderer.SpriteBatch.Draw(_worldNoEffectsRenderTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
         _renderer.SpriteBatch.Draw(_guiRenderTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
         _renderer.SpriteBatch.End();
@@ -184,10 +167,8 @@ public class DrawService : IDrawService
         PresentationParameters pp = _graphicsDevice.PresentationParameters;
         _guiRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
         _worldRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
+        _worldWithEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
         _worldNoEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
-#if LIGHT_EFFECT
-        _lightRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
-#endif
 
         GuiLayer.WindowResized();
         WorldLayer.WindowResized();

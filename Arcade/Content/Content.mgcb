@@ -12,9 +12,3 @@
 
 
 #---------------------------------- Content ---------------------------------#
-
-#begin effects/lighting.fx
-/importer:EffectImporter
-/processor:EffectProcessor
-/processorParam:DebugMode=Auto
-/build:effects/lighting.fx
