@@ -15,12 +15,12 @@ public interface IDrawService
 
     void WindowResized();
 
+    void TogglEffect<T>() where T : IGameEffect;
+
     DrawType DrawType { get; }
 
     ILayerView GuiLayer { get; }
     ILayerView WorldLayer { get; }
-
-    IReadOnlyList<IGameEffect> Effects { get; }
 }
 
 public class DrawService : IDrawService
@@ -33,8 +33,6 @@ public class DrawService : IDrawService
 
     public ILayerView GuiLayer { get; private set; }
     public ILayerView WorldLayer { get; private set; }
-
-    public IReadOnlyList<IGameEffect> Effects => _effects;
 
     /* Render targets
     *
@@ -168,5 +166,16 @@ public class DrawService : IDrawService
 
         GuiLayer.WindowResized();
         WorldLayer.WindowResized();
+    }
+
+    public void TogglEffect<T>() where T : IGameEffect
+    {
+        foreach (var effect in _effects)
+        {
+            if (effect is T)
+            {
+                effect.IsEnabled = !effect.IsEnabled;
+            }
+        }
     }
 }
