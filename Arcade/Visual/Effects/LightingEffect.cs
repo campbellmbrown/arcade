@@ -1,14 +1,12 @@
+using Arcade.Core;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace Arcade.Visual.Effects;
 
-public class LightingEffect(IDrawService drawService, GraphicsDevice graphicsDevice) : IGameEffect
+public class LightingEffect(IDrawService drawService, IContentService content, GraphicsDevice graphicsDevice) : IGameEffect
 {
-    // TODO: move to content service
-    const string EffectPath = "Content/effects/lighting.mgfxo";
-
-    readonly Effect _effect = new(graphicsDevice, File.ReadAllBytes(EffectPath));
+    readonly Effect _effect = content.Effect.GetStandard(StandardEffectId.Lighting);
 
     RenderTarget2D _lightRenderTarget = new(
         graphicsDevice,

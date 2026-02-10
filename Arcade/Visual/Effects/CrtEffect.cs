@@ -1,3 +1,4 @@
+using Arcade.Core;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -5,16 +6,13 @@ namespace Arcade.Visual.Effects;
 
 public class CrtEffect : IGameEffect
 {
-    // TODO: move to content service
-    const string EffectPath = "Content/effects/crt.mgfxo";
-
     readonly GraphicsDevice _graphicsDevice;
     readonly Effect _effect;
 
-    public CrtEffect(GraphicsDevice graphicsDevice)
+    public CrtEffect(IContentService content, GraphicsDevice graphicsDevice)
     {
         _graphicsDevice = graphicsDevice;
-        _effect = new Effect(graphicsDevice, File.ReadAllBytes(EffectPath));
+        _effect = content.Effect.GetStandard(StandardEffectId.Crt);
         _effect.Parameters["hardScan"]?.SetValue(-1.0f);
         _effect.Parameters["hardPix"]?.SetValue(-3.0f);
         _effect.Parameters["warpX"]?.SetValue(0.031f);

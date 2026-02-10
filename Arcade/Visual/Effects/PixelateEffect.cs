@@ -3,14 +3,12 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace Arcade.Visual.Effects;
 
-public class PixelateEffect(GraphicsDevice graphicsDevice) : IGameEffect
+public class PixelateEffect(GraphicsDevice graphicsDevice, int pixelation) : IGameEffect
 {
-    const int Pixelation = 8;
-
     readonly RenderTarget2D _pixelationRenderTarget = new(
         graphicsDevice,
-        graphicsDevice.PresentationParameters.BackBufferWidth / Pixelation,
-        graphicsDevice.PresentationParameters.BackBufferHeight / Pixelation
+        graphicsDevice.PresentationParameters.BackBufferWidth / pixelation,
+        graphicsDevice.PresentationParameters.BackBufferHeight / pixelation
     );
 
     public void ApplyEffect(IRenderer renderer, RenderTarget2D source, RenderTarget2D destination)
@@ -19,14 +17,14 @@ public class PixelateEffect(GraphicsDevice graphicsDevice) : IGameEffect
         graphicsDevice.SetRenderTarget(_pixelationRenderTarget);
         graphicsDevice.Clear(Color.Transparent);
         renderer.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp);
-        renderer.SpriteBatch.Draw(source, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1.0f / Pixelation, SpriteEffects.None, 0f);
+        renderer.SpriteBatch.Draw(source, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1.0f / pixelation, SpriteEffects.None, 0f);
         renderer.SpriteBatch.End();
 
         // Then draw the pixelated render target to the destination at full resolution
         graphicsDevice.SetRenderTarget(destination);
         graphicsDevice.Clear(Color.Transparent);
         renderer.SpriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp);
-        renderer.SpriteBatch.Draw(_pixelationRenderTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, Pixelation, SpriteEffects.None, 0f);
+        renderer.SpriteBatch.Draw(_pixelationRenderTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, pixelation, SpriteEffects.None, 0f);
         renderer.SpriteBatch.End();
     }
 
