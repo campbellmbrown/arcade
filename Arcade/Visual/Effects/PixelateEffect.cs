@@ -5,7 +5,7 @@ namespace Arcade.Visual.Effects;
 
 public class PixelateEffect(GraphicsDevice graphicsDevice, int pixelation) : IGameEffect
 {
-    readonly RenderTarget2D _pixelationRenderTarget = new(
+    RenderTarget2D _pixelationRenderTarget = new(
         graphicsDevice,
         graphicsDevice.PresentationParameters.BackBufferWidth / pixelation,
         graphicsDevice.PresentationParameters.BackBufferHeight / pixelation
@@ -28,5 +28,12 @@ public class PixelateEffect(GraphicsDevice graphicsDevice, int pixelation) : IGa
         renderer.SpriteBatch.End();
     }
 
-    // TODO: handle the window resized event
+    public void WindowResized()
+    {
+        _pixelationRenderTarget = new RenderTarget2D(
+            graphicsDevice,
+            graphicsDevice.PresentationParameters.BackBufferWidth / pixelation,
+            graphicsDevice.PresentationParameters.BackBufferHeight / pixelation
+        );
+    }
 }

@@ -159,6 +159,11 @@ public class DrawService : IDrawService
         _tmpRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
         _worldNoEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
 
+        foreach (var effect in _effects)
+        {
+            effect.WindowResized();
+        }
+
         GuiLayer.WindowResized();
         WorldLayer.WindowResized();
     }

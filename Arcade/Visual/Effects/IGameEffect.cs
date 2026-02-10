@@ -5,4 +5,6 @@ namespace Arcade.Visual.Effects;
 public interface IGameEffect
 {
     void ApplyEffect(IRenderer renderer, RenderTarget2D source, RenderTarget2D destination);
+
+    void WindowResized();
 }

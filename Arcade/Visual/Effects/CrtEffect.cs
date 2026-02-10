@@ -46,5 +46,14 @@ public class CrtEffect : IGameEffect
         renderer.SpriteBatch.End();
     }
 
-    // TODO: handle the window resized event
+    public void WindowResized()
+    {
+        Vector2 size = new(
+            _graphicsDevice.PresentationParameters.BackBufferWidth,
+            _graphicsDevice.PresentationParameters.BackBufferHeight
+        );
+        _effect.Parameters["textureSize"].SetValue(size);
+        _effect.Parameters["videoSize"].SetValue(size);
+        _effect.Parameters["outputSize"].SetValue(size);
+    }
 }
