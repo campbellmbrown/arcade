@@ -5,13 +5,6 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace Arcade.Visual;
 
-public enum DrawType
-{
-    Gui,
-    World,
-    WorldNoEffects,
-}
-
 public interface IDrawService
 {
     void RegisterEffect(IGameEffect effect);
@@ -26,6 +19,8 @@ public interface IDrawService
 
     ILayerView GuiLayer { get; }
     ILayerView WorldLayer { get; }
+
+    IReadOnlyList<IGameEffect> Effects { get; }
 }
 
 public class DrawService : IDrawService
@@ -38,6 +33,8 @@ public class DrawService : IDrawService
 
     public ILayerView GuiLayer { get; private set; }
     public ILayerView WorldLayer { get; private set; }
+
+    public IReadOnlyList<IGameEffect> Effects => _effects;
 
     /* Render targets
     *
@@ -130,6 +127,11 @@ public class DrawService : IDrawService
         RenderTarget2D final = _worldRenderTarget; // Assuming no effects
         foreach (var effect in _effects)
         {
+            if (!effect.IsEnabled)
+            {
+                continue;
+            }
+
             effect.ApplyEffect(_renderer, source, destination);
             final = destination;
 

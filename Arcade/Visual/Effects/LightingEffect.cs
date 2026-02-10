@@ -14,8 +14,15 @@ public class LightingEffect(IDrawService drawService, IContentService content, G
         graphicsDevice.PresentationParameters.BackBufferHeight
     );
 
+    public bool IsEnabled { get; set; } = true;
+
     public void ApplyEffect(IRenderer renderer, RenderTarget2D source, RenderTarget2D destination)
     {
+        if (!IsEnabled)
+        {
+            throw new InvalidOperationException("Effect is not enabled.");
+        }
+
         graphicsDevice.SetRenderTarget(_lightRenderTarget);
         graphicsDevice.Clear(Color.Black);
 

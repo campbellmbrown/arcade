@@ -11,8 +11,15 @@ public class PixelateEffect(GraphicsDevice graphicsDevice, int pixelation) : IGa
         graphicsDevice.PresentationParameters.BackBufferHeight / pixelation
     );
 
+    public bool IsEnabled { get; set; } = true;
+
     public void ApplyEffect(IRenderer renderer, RenderTarget2D source, RenderTarget2D destination)
     {
+        if (!IsEnabled)
+        {
+            throw new InvalidOperationException("Effect is not enabled.");
+        }
+
         // First draw to the pixelation render target at a lower resolution
         graphicsDevice.SetRenderTarget(_pixelationRenderTarget);
         graphicsDevice.Clear(Color.Transparent);

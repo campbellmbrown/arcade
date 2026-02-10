@@ -36,8 +36,15 @@ public class CrtEffect : IGameEffect
         _effect.Parameters["outputSize"].SetValue(size);
     }
 
+    public bool IsEnabled { get; set; } = true;
+
     public void ApplyEffect(IRenderer renderer, RenderTarget2D source, RenderTarget2D destination)
     {
+        if (!IsEnabled)
+        {
+            throw new InvalidOperationException("Effect is not enabled.");
+        }
+
         _graphicsDevice.SetRenderTarget(destination);
         _graphicsDevice.Clear(Color.Transparent);
 
