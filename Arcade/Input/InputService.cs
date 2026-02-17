@@ -69,7 +69,7 @@ public class InputService<TControl>(ILayerView guiLayer, ILayerView worldLayer) 
         public bool IsKeyHeldDown { get; set; } = true;
     }
 
-    readonly Dictionary<TControl, KeyBinding> _controlKeys = [];
+    readonly Dictionary<TControl, List<KeyBinding>> _controlKeys = [];
     readonly List<HeldInput> _heldKeys = [];
     readonly List<SingleShotInput> _singleShotInputs = [];
 
@@ -86,44 +86,60 @@ public class InputService<TControl>(ILayerView guiLayer, ILayerView worldLayer) 
 
     public void RegisterControl(TControl control, Keys key, KeyModifiers modifiers = KeyModifiers.None)
     {
-        _controlKeys[control] = new KeyBinding(key, modifiers);
+        var keyBinding = new KeyBinding(key, modifiers);
+        if (!_controlKeys.TryGetValue(control, out var keyBindings))
+        {
+            keyBindings = [];
+            _controlKeys[control] = keyBindings;
+        }
+
+        if (!keyBindings.Contains(keyBinding))
+        {
+            keyBindings.Add(keyBinding);
+        }
     }
 
     public void RegisterHeldKey(TControl control, Action action)
     {
-        if (!_controlKeys.TryGetValue(control, out var keyBinding))
+        if (!_controlKeys.TryGetValue(control, out var keyBindings))
         {
             throw new ArgumentException($"Control {control} has not been registered.");
         }
 
-        // Sort by the number of modifiers, descending, so that more specific bindings are checked first.
-        int index = _heldKeys.FindIndex(input => input.KeyBinding.Modifiers.Count() < keyBinding.Modifiers.Count());
-        if (index >= 0)
+        foreach (var keyBinding in keyBindings)
         {
-            _heldKeys.Insert(index, new HeldInput(control, keyBinding, action));
-        }
-        else
-        {
-            _heldKeys.Add(new HeldInput(control, keyBinding, action));
+            // Sort by the number of modifiers, descending, so that more specific bindings are checked first.
+            int index = _heldKeys.FindIndex(input => input.KeyBinding.Modifiers.Count() < keyBinding.Modifiers.Count());
+            if (index >= 0)
+            {
+                _heldKeys.Insert(index, new HeldInput(control, keyBinding, action));
+            }
+            else
+            {
+                _heldKeys.Add(new HeldInput(control, keyBinding, action));
+            }
         }
     }
 
     public void RegisterSingleShotKey(TControl control, Action action)
     {
-        if (!_controlKeys.TryGetValue(control, out var keyBinding))
+        if (!_controlKeys.TryGetValue(control, out var keyBindings))
         {
             throw new ArgumentException($"Control {control} has not been registered.");
         }
 
-        // Sort by the number of modifiers, descending, so that more specific bindings are checked first.
-        int index = _singleShotInputs.FindIndex(input => input.KeyBinding.Modifiers.Count() < keyBinding.Modifiers.Count());
-        if (index >= 0)
+        foreach (var keyBinding in keyBindings)
         {
-            _singleShotInputs.Insert(index, new SingleShotInput(control, keyBinding, action));
-        }
-        else
-        {
-            _singleShotInputs.Add(new SingleShotInput(control, keyBinding, action));
+            // Sort by the number of modifiers, descending, so that more specific bindings are checked first.
+            int index = _singleShotInputs.FindIndex(input => input.KeyBinding.Modifiers.Count() < keyBinding.Modifiers.Count());
+            if (index >= 0)
+            {
+                _singleShotInputs.Insert(index, new SingleShotInput(control, keyBinding, action));
+            }
+            else
+            {
+                _singleShotInputs.Add(new SingleShotInput(control, keyBinding, action));
+            }
         }
     }
 
