@@ -13,6 +13,7 @@ public interface IRandomService
     Vector2 NewRandomVector2(float maxExclusive);
     Vector2 NewRandomVector2(float minInclusive, float maxExclusive);
     T ChooseRandom<T>(List<T> list);
+    T ChooseRandom<T>(params T[] items);
 }
 
 public class RandomService : IRandomService
@@ -36,4 +37,5 @@ public class RandomService : IRandomService
     public Vector2 NewRandomVector2(float minInclusive, float maxExclusive) => new(NewRandomFloat(minInclusive, maxExclusive), NewRandomFloat(minInclusive, maxExclusive));
 
     public T ChooseRandom<T>(List<T> list) => list[_random.Next(list.Count)];
+    public T ChooseRandom<T>(params T[] items) => items[_random.Next(items.Length)];
 }
