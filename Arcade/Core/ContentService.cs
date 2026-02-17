@@ -11,6 +11,11 @@ public interface IContentService
     ITextureProvider Texture { get; }
 
     /// <summary>
+    /// Provides access to sounds.
+    /// </summary>
+    ISoundProvider Sound { get; }
+
+    /// <summary>
     /// Provides access to fonts.
     /// </summary>
     IFontProvider Font { get; }
@@ -29,6 +34,7 @@ public interface IContentService
 public class ContentService : IContentService
 {
     public IFontProvider Font { get; }
+    public ISoundProvider Sound { get; }
     public ITextureProvider Texture { get; }
     public IEffectProvider Effect { get; }
     public IContentCreator Creator { get; }
@@ -37,6 +43,7 @@ public class ContentService : IContentService
     {
         Font = new FontProvider(content);
         Texture = new TextureProvider(content);
+        Sound = new SoundProvider(content);
         Effect = new EffectProvider(graphicsDevice);
         Creator = new ContentCreator(Font);
     }
