@@ -19,7 +19,7 @@ public interface IButton : IClickable
 public abstract class ButtonBase : Widget, IButton
 {
     public bool IsEnabled { get; set; } = true;
-    public RectangleF InteractionArea => new(Position, new Size2(Width, Height));
+    public RectangleF InteractionArea => new(Position, new Vector2(Width, Height));
     public ClickEvent InputEvent { get; } = new();
 
     public bool IsCheckable { get; set; } = false;
