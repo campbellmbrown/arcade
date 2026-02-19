@@ -9,6 +9,20 @@ public interface IDrawService
 {
     void RegisterEffect(IGameEffect effect);
 
+    /// <summary>
+    /// Crop the width of the world back buffers. The cropping will be centered on the screen.
+    /// If this is not called, the entire backbuffer width will be drawn to.
+    /// </summary>
+    /// <param name="width">The width to crop the world back buffers to in screen units, must be greater than 0</param>
+    void CropWorldWidth(int width);
+
+    /// <summary>
+    /// Crop the height of the world back buffers. The cropping will be centered on the screen.
+    /// If this is not called, the entire backbuffer height will be drawn to.
+    /// </summary>
+    /// <param name="height">The height to crop the world back buffers to in screen units, must be greater than 0</param>
+    void CropWorldHeight(int height);
+
     void Start(DrawType drawType);
     void Switch(DrawType drawType);
     void Finish();
@@ -29,10 +43,9 @@ public class DrawService : IDrawService
     readonly IRenderer _renderer;
     readonly List<IGameEffect> _effects = [];
 
-    public DrawType DrawType { get; private set; }
-
-    public ILayerView GuiLayer { get; private set; }
-    public ILayerView WorldLayer { get; private set; }
+    int? _worldCropWidth = null;
+    int? _worldCropHeight = null;
+    Rectangle? _worldCropRectangle = null;
 
     /* Render targets
     *
@@ -63,24 +76,43 @@ public class DrawService : IDrawService
     /// </summary>
     RenderTarget2D _worldNoEffectsRenderTarget;
 
-    public DrawService(IRenderContext renderContext, IRenderer renderer)
+    public DrawService(IRenderContext renderContext, IRenderer renderer, int guiZoom = 2, int worldZoom = 4)
     {
         _graphicsDevice = renderContext.GraphicsDevice;
         _renderer = renderer;
 
-        PresentationParameters pp = _graphicsDevice.PresentationParameters;
-        _guiRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
-        _worldRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
-        _tmpRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
-        _worldNoEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
+        var width = _graphicsDevice.PresentationParameters.BackBufferWidth;
+        var height = _graphicsDevice.PresentationParameters.BackBufferHeight;
+        _guiRenderTarget = new RenderTarget2D(_graphicsDevice, width, height);
+        _worldRenderTarget = new RenderTarget2D(_graphicsDevice, width, height);
+        _tmpRenderTarget = new RenderTarget2D(_graphicsDevice, width, height);
+        _worldNoEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, width, height);
 
-        GuiLayer = new LayerView(renderContext, zoom: 2);
-        WorldLayer = new LayerView(renderContext, zoom: 4);
+        GuiLayer = new LayerView(renderContext, guiZoom);
+        WorldLayer = new LayerView(renderContext, worldZoom);
+        UpdateWorldCropRectangle();
     }
+
+    public DrawType DrawType { get; private set; }
+
+    public ILayerView GuiLayer { get; private set; }
+    public ILayerView WorldLayer { get; private set; }
 
     public void RegisterEffect(IGameEffect effect)
     {
         _effects.Add(effect);
+    }
+
+    public void CropWorldWidth(int width)
+    {
+        _worldCropWidth = width < 1 ? null : width;
+        UpdateWorldCropRectangle();
+    }
+
+    public void CropWorldHeight(int height)
+    {
+        _worldCropHeight = height < 1 ? null : height;
+        UpdateWorldCropRectangle();
     }
 
     public void Start(DrawType drawType)
@@ -140,24 +172,32 @@ public class DrawService : IDrawService
         // (2) Draw the world content to the back buffer.
         _graphicsDevice.SetRenderTarget(null);
         _graphicsDevice.Clear(Color.Black);
+
+        Vector2 worldPosition = _worldCropRectangle is null
+            ? Vector2.Zero
+            : new Vector2(_worldCropRectangle.Value.X, _worldCropRectangle.Value.Y);
+
         _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
-        _renderer.SpriteBatch.Draw(final, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
+        _renderer.SpriteBatch.Draw(final, worldPosition, _worldCropRectangle, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
         _renderer.SpriteBatch.End();
 
         // (3) Draw the rest of the targets to the back buffer.
         _renderer.SpriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
-        _renderer.SpriteBatch.Draw(_worldNoEffectsRenderTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
+        _renderer.SpriteBatch.Draw(_worldNoEffectsRenderTarget, worldPosition, _worldCropRectangle, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
+
+        // GUI is intentionally always drawn full-screen without cropping.
         _renderer.SpriteBatch.Draw(_guiRenderTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
         _renderer.SpriteBatch.End();
     }
 
     public void WindowResized()
     {
-        PresentationParameters pp = _graphicsDevice.PresentationParameters;
-        _guiRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
-        _worldRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
-        _tmpRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
-        _worldNoEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight);
+        var width = _graphicsDevice.PresentationParameters.BackBufferWidth;
+        var height = _graphicsDevice.PresentationParameters.BackBufferHeight;
+        _guiRenderTarget = new RenderTarget2D(_graphicsDevice, width, height);
+        _worldRenderTarget = new RenderTarget2D(_graphicsDevice, width, height);
+        _tmpRenderTarget = new RenderTarget2D(_graphicsDevice, width, height);
+        _worldNoEffectsRenderTarget = new RenderTarget2D(_graphicsDevice, width, height);
 
         foreach (var effect in _effects)
         {
@@ -166,6 +206,7 @@ public class DrawService : IDrawService
 
         GuiLayer.WindowResized();
         WorldLayer.WindowResized();
+        UpdateWorldCropRectangle();
     }
 
     public void TogglEffect<T>() where T : IGameEffect
@@ -177,5 +218,24 @@ public class DrawService : IDrawService
                 effect.IsEnabled = !effect.IsEnabled;
             }
         }
+    }
+
+    void UpdateWorldCropRectangle()
+    {
+        var backBufferWidth = _graphicsDevice.PresentationParameters.BackBufferWidth;
+        var backBufferHeight = _graphicsDevice.PresentationParameters.BackBufferHeight;
+
+        var width = _worldCropWidth is null ? backBufferWidth : Math.Clamp(_worldCropWidth.Value, 1, backBufferWidth);
+        var height = _worldCropHeight is null ? backBufferHeight : Math.Clamp(_worldCropHeight.Value, 1, backBufferHeight);
+
+        if ((width == backBufferWidth) && (height == backBufferHeight))
+        {
+            _worldCropRectangle = null;
+            return;
+        }
+
+        var x = (backBufferWidth - width) / 2;
+        var y = (backBufferHeight - height) / 2;
+        _worldCropRectangle = new Rectangle(x, y, width, height);
     }
 }
