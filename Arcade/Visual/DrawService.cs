@@ -2,6 +2,7 @@ using Arcade.Core;
 using Arcade.Visual.Effects;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.Extended;
 
 namespace Arcade.Visual;
 
@@ -35,6 +36,9 @@ public interface IDrawService
 
     ILayerView GuiLayer { get; }
     ILayerView WorldLayer { get; }
+
+    Color BackgroundColor { get; set; }
+    Color? Tint { get; set; }
 }
 
 public class DrawService : IDrawService
@@ -97,6 +101,10 @@ public class DrawService : IDrawService
 
     public ILayerView GuiLayer { get; private set; }
     public ILayerView WorldLayer { get; private set; }
+
+    // TODO: reset these on state change?
+    public Color BackgroundColor { get; set; } = Color.Black;
+    public Color? Tint { get; set; } = null;
 
     public void RegisterEffect(IGameEffect effect)
     {
@@ -171,7 +179,7 @@ public class DrawService : IDrawService
 
         // (2) Draw the world content to the back buffer.
         _graphicsDevice.SetRenderTarget(null);
-        _graphicsDevice.Clear(Color.Black);
+        _graphicsDevice.Clear(BackgroundColor);
 
         Vector2 worldPosition = _worldCropRectangle is null
             ? Vector2.Zero
@@ -187,6 +195,19 @@ public class DrawService : IDrawService
 
         // GUI is intentionally always drawn full-screen without cropping.
         _renderer.SpriteBatch.Draw(_guiRenderTarget, Vector2.Zero, null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
+
+        // Apply tint
+        if (Tint is not null)
+        {
+            _renderer.SpriteBatch.FillRectangle(
+                Vector2.Zero,
+                new Vector2(
+                    _graphicsDevice.PresentationParameters.BackBufferWidth,
+                    _graphicsDevice.PresentationParameters.BackBufferHeight),
+                Tint.Value
+            );
+        }
+
         _renderer.SpriteBatch.End();
     }
 
