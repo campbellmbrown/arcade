@@ -5,6 +5,8 @@ namespace Arcade.Core;
 
 public interface ISoundProvider
 {
+    bool IsEnabled { get; set; }
+
     /// <summary>
     /// Register and load a sound.
     /// </summary>
@@ -28,6 +30,9 @@ public class SoundProvider(ContentManager content) : ISoundProvider
 {
     readonly Dictionary<Enum, SoundEffect> _sounds = [];
 
+    // TODO: this isn't the best place for this.
+    public bool IsEnabled { get; set; } = true;
+
     public void Register<T>(T id, string path) where T : Enum
     {
         var sound = content.Load<SoundEffect>(path);
@@ -41,6 +46,9 @@ public class SoundProvider(ContentManager content) : ISoundProvider
 
     public void Play<T>(T id, float volume = 1f, float pitch = 0f, float pan = 0f) where T : Enum
     {
-        _sounds[id].Play(volume, pitch, pan);
+        if (IsEnabled)
+        {
+            _sounds[id].Play(volume, pitch, pan);
+        }
     }
 }
