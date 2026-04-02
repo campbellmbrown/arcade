@@ -39,31 +39,55 @@ Copy the following template files from the Arcade repository to your project:
 Required Changes
 ----------------
 
-Make the following changes to ``EchoLocation.csproj``:
+Update ``MyGame.csproj`` with the following changes:
 
-#. Change ``net9.0`` to ``net10.0``
-#. Add the following to the first property group:
+.. code-block:: xml
 
-   .. code-block:: xml
+   <Project Sdk="Microsoft.NET.Sdk">
+     <PropertyGroup>
+       <OutputType>WinExe</OutputType>
+       <TargetFramework>net10.0</TargetFramework>
+       <RollForward>Major</RollForward>
+       <PublishReadyToRun>false</PublishReadyToRun>
+       <TieredCompilation>false</TieredCompilation>
+       <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+       <Nullable>enable</Nullable>
+     </PropertyGroup>
+     <PropertyGroup>
+       <ApplicationManifest>app.manifest</ApplicationManifest>
+       <ApplicationIcon>Icon.ico</ApplicationIcon>
+     </PropertyGroup>
+     <!-- Allow reference to the MonoGame.Extended pipeline regardless of build location
+     See https://docs.monogame.net/articles/getting_started/tools/mgcb.html -->
+     <PropertyGroup>
+       <MonoGameMGCBAdditionalArguments>/quiet /reference:&quot;$(PkgMonoGame_Extended_Content_Pipeline)/tools/MonoGame.Extended.Content.Pipeline.dll&quot;</MonoGameMGCBAdditionalArguments>
+     </PropertyGroup>
+     <ItemGroup>
+       <None Remove="Icon.ico" />
+       <None Remove="Icon.bmp" />
+     </ItemGroup>
+     <ItemGroup>
+       <EmbeddedResource Include="Icon.ico">
+         <LogicalName>Icon.ico</LogicalName>
+       </EmbeddedResource>
+       <EmbeddedResource Include="Icon.bmp">
+         <LogicalName>Icon.bmp</LogicalName>
+       </EmbeddedResource>
+     </ItemGroup>
+     <ItemGroup>
+       <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.*" />
+       <PackageReference Include="MonoGame.Extended.Content.Pipeline" Version="3.8.*" GeneratePathProperty="true" />
+       <PackageReference Include="MonoGame.Extended" Version="3.8.*" />
+       <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.*" />
+     </ItemGroup>
+     <ItemGroup>
+       <ProjectReference Include="../Arcade/Arcade/Arcade.csproj" />
+     </ItemGroup>
+     <ItemGroup>
+       <MonoGameContentReference Include="../Arcade/Arcade/Content/Content.mgcb" />
+     </ItemGroup>
+   </Project>
 
-      <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-      <Nullable>enable</Nullable>
-
-#. Add a content reference to the Arcade content pipeline:
-
-   .. code-block:: xml
-
-      <ItemGroup>
-        <MonoGameContentReference Include="../Arcade/Arcade/Content/Content.mgcb" />
-      </ItemGroup>
-
-Make the following changes to ``Game1.cs``:
-
-#. Add a nullable annotation to the ``_spriteBatch`` field declaration:
-
-   .. code-block:: csharp
-
-      private SpriteBatch? _spriteBatch;
 
 Run the Project
 ---------------
